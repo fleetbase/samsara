@@ -1,6 +1,6 @@
 <p align="center">
     <p align="center">
-        <img src="https://github.com/user-attachments/assets/afac09ee-1fbf-423b-b2a6-7f05a06b12b2" width="180" height="180" />
+        <img src="https://github.com/user-attachments/assets/5c9bf4c6-64ac-40f5-ada8-4ec48ec9ca1e" width="180" height="180" />
     </p>
     <p align="center">
        A comprehensive Fleetbase extension that integrates with the Samsara API for vehicle data import and real-time location tracking. This extension enables fleet operators to seamlessly sync vehicle data from Samsara into their Fleetbase instance, providing unified fleet management capabilities.

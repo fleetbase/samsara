@@ -1,11 +1,11 @@
 <div class="bg-white shadow rounded-lg">
-    <!-- Header with filters -->
+    {{!-- Header with filters --}}
     <div class="px-6 py-4 border-b border-gray-200">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
             <h3 class="text-lg font-medium text-gray-900">Samsara Vehicles</h3>
             
             <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
-                <!-- Search -->
+                {{!-- Search --}}
                 <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <FaIcon @icon="search" class="text-gray-400" />
@@ -19,10 +19,10 @@
                     />
                 </div>
 
-                <!-- Status Filter -->
+                {{!-- Status Filter --}}
                 <select
                     class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                    {{on "change" (fn this.updateStatusFilter)}}
+                    {{on "change" this.updateStatusFilter}}
                 >
                     {{#each this.statusOptions as |option|}}
                         <option value={{option.value}} selected={{eq this.statusFilter option.value}}>
@@ -31,10 +31,10 @@
                     {{/each}}
                 </select>
 
-                <!-- Link Filter -->
+                {{!-- Link Filter --}}
                 <select
                     class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                    {{on "change" (fn this.updateLinkFilter)}}
+                    {{on "change" this.updateLinkFilter}}
                 >
                     {{#each this.linkOptions as |option|}}
                         <option value={{option.value}} selected={{eq this.linkFilter option.value}}>
@@ -46,7 +46,7 @@
         </div>
     </div>
 
-    <!-- Vehicles Table -->
+    {{!-- Vehicles Table --}}
     <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
@@ -143,7 +143,7 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div class="flex items-center justify-end space-x-2">
-                                <!-- Sync Button -->
+                                {{!-- Sync Button --}}
                                 {{#if vehicle.canSync}}
                                     <button
                                         type="button"
@@ -155,7 +155,7 @@
                                     </button>
                                 {{/if}}
 
-                                <!-- Link/Unlink Button -->
+                                {{!-- Link/Unlink Button --}}
                                 {{#if vehicle.isLinked}}
                                     <button
                                         type="button"
@@ -176,7 +176,7 @@
                                     </button>
                                 {{/if}}
 
-                                <!-- Location History Button -->
+                                {{!-- Location History Button --}}
                                 {{#if vehicle.hasLocation}}
                                     <button
                                         type="button"
@@ -188,7 +188,7 @@
                                     </button>
                                 {{/if}}
 
-                                <!-- Delete Button -->
+                                {{!-- Delete Button --}}
                                 <button
                                     type="button"
                                     class="text-red-600 hover:text-red-900"
@@ -217,7 +217,7 @@
         </table>
     </div>
 
-    <!-- Footer with count -->
+    {{!-- Footer with count --}}
     {{#if this.filteredVehicles.length}}
         <div class="px-6 py-3 border-t border-gray-200 bg-gray-50">
             <div class="text-sm text-gray-700">

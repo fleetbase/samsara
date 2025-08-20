@@ -18,18 +18,17 @@ export default class SamsaraRoute extends Route {
         return {
             credentials: this.store.findAll('samsara-credential'),
             vehicles: this.store.findAll('samsara-vehicle'),
-            webhookEvents: this.store.query('samsara-webhook-event', { 
+            webhookEvents: this.store.query('samsara-webhook-event', {
                 limit: 10,
-                sort: '-created_at'
-            })
+                sort: '-created_at',
+            }),
         };
     }
 
     setupController(controller, model) {
         super.setupController(controller, model);
-        
+
         // Set up any additional controller properties
         controller.set('isLoading', false);
     }
 }
-

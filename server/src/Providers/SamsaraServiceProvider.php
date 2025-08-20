@@ -105,10 +105,10 @@ class SamsaraServiceProvider extends CoreServiceProvider
         $this->loadMigrationsFrom(__DIR__ . '/../../migrations');
 
         // Register policies
-        $this->registerPolicies();
+        // $this->registerPolicies();
 
-        // Register auth schema
-        $this->registerAuthSchema();
+        // // Register auth schema
+        // $this->registerAuthSchema();
 
         // Register additional gates
         Gate::define('samsara.access', function ($user) {

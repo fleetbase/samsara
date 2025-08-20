@@ -76,4 +76,3 @@ export default class SamsaraCredentialModel extends Model {
         return `${this.name} (${this.environmentText})`;
     }
 }
-

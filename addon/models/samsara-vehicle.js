@@ -18,11 +18,11 @@ export default class SamsaraVehicleModel extends Model {
     @computed('syncStatus')
     get syncStatusText() {
         const statusMap = {
-            'pending': 'Pending',
-            'syncing': 'Syncing',
-            'active': 'Active',
-            'failed': 'Failed',
-            'disabled': 'Disabled'
+            pending: 'Pending',
+            syncing: 'Syncing',
+            active: 'Active',
+            failed: 'Failed',
+            disabled: 'Disabled',
         };
         return statusMap[this.syncStatus] || 'Unknown';
     }
@@ -30,11 +30,11 @@ export default class SamsaraVehicleModel extends Model {
     @computed('syncStatus')
     get syncStatusClass() {
         const classMap = {
-            'pending': 'text-yellow-600 bg-yellow-100',
-            'syncing': 'text-blue-600 bg-blue-100',
-            'active': 'text-green-600 bg-green-100',
-            'failed': 'text-red-600 bg-red-100',
-            'disabled': 'text-gray-600 bg-gray-100'
+            pending: 'text-yellow-600 bg-yellow-100',
+            syncing: 'text-blue-600 bg-blue-100',
+            active: 'text-green-600 bg-green-100',
+            failed: 'text-red-600 bg-red-100',
+            disabled: 'text-gray-600 bg-gray-100',
         };
         return classMap[this.syncStatus] || 'text-gray-600 bg-gray-100';
     }
@@ -68,7 +68,7 @@ export default class SamsaraVehicleModel extends Model {
                 longitude: data.location.longitude,
                 timestamp: data.location.time,
                 speed: data.location.speed,
-                heading: data.location.heading
+                heading: data.location.heading,
             };
         }
         return null;
@@ -79,7 +79,7 @@ export default class SamsaraVehicleModel extends Model {
         return !!this.lastLocation;
     }
 
-    @computed('lastLocation.latitude', 'lastLocation.longitude')
+    @computed('hasLocation', 'lastLocation.{latitude,longitude}')
     get locationText() {
         if (this.hasLocation) {
             const lat = this.lastLocation.latitude.toFixed(6);
@@ -117,7 +117,7 @@ export default class SamsaraVehicleModel extends Model {
         return this.syncStatus === 'failed';
     }
 
-    @computed('meta')
+    @computed('meta.last_sync_error')
     get lastSyncError() {
         return this.meta?.last_sync_error;
     }
@@ -137,4 +137,3 @@ export default class SamsaraVehicleModel extends Model {
         return this.vehicle?.name || 'Not linked';
     }
 }
-

@@ -20,7 +20,7 @@
 
 <Layout::Section::Body>
     {{#if this.hasActiveCredential}}
-        <!-- Dashboard Stats -->
+        {{!-- Dashboard Stats --}}
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="flex items-center">
@@ -71,7 +71,7 @@
             </div>
         </div>
 
-        <!-- Tabs Navigation -->
+        {{!-- Tabs Navigation --}}
         <div class="mb-6">
             <nav class="flex space-x-8" aria-label="Tabs">
                 <button 
@@ -105,7 +105,7 @@
             </nav>
         </div>
 
-        <!-- Tab Content -->
+        {{!-- Tab Content --}}
         {{#if (eq this.activeTab "vehicles")}}
             <SamsaraVehiclesList 
                 @vehicles={{this.model.vehicles}}
@@ -135,7 +135,7 @@
             />
         {{/if}}
     {{else}}
-        <!-- No Credential Setup -->
+        {{!-- No Credential Setup --}}
         <div class="text-center py-12">
             <FaIcon @icon="plug" @size="3x" class="text-gray-400 mb-4" />
             <h3 class="text-lg font-medium text-gray-900 mb-2">No Samsara Credentials Configured</h3>
@@ -150,7 +150,7 @@
     {{/if}}
 </Layout::Section::Body>
 
-<!-- Modals -->
+{{!-- Modals --}}
 {{#if this.showCredentialModal}}
     <SamsaraCredentialModal 
         @credential={{this.editingCredential}}

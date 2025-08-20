@@ -43,13 +43,13 @@ export default class SamsaraCredentialModalComponent extends Component {
                 method: 'POST',
                 body: JSON.stringify({
                     api_token: this.credential.apiToken,
-                    api_base_url: this.credential.apiBaseUrl || 'https://api.samsara.com'
-                })
+                    api_base_url: this.credential.apiBaseUrl || 'https://api.samsara.com',
+                }),
             });
 
             this.connectionTestResult = {
                 success: response.success,
-                message: response.message
+                message: response.message,
             };
 
             if (response.success) {
@@ -60,7 +60,7 @@ export default class SamsaraCredentialModalComponent extends Component {
         } catch (error) {
             this.connectionTestResult = {
                 success: false,
-                message: error.message
+                message: error.message,
             };
             this.notifications.error('Connection test failed: ' + error.message);
         } finally {
@@ -106,11 +106,10 @@ export default class SamsaraCredentialModalComponent extends Component {
     generateWebhookSecret() {
         // Generate a random webhook secret
         const secret = Array.from(crypto.getRandomValues(new Uint8Array(32)))
-            .map(b => b.toString(16).padStart(2, '0'))
+            .map((b) => b.toString(16).padStart(2, '0'))
             .join('');
-        
+
         this.credential.set('webhookSecret', secret);
         this.notifications.success('Webhook secret generated');
     }
 }
-

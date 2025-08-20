@@ -17,25 +17,26 @@ export default class SamsaraVehiclesListComponent extends Component {
         // Filter by search term
         if (this.searchTerm) {
             const term = this.searchTerm.toLowerCase();
-            vehicles = vehicles.filter(vehicle => 
-                vehicle.displayName.toLowerCase().includes(term) ||
-                vehicle.samsaraVehicleId.toLowerCase().includes(term) ||
-                vehicle.samsaraVehicleVin?.toLowerCase().includes(term) ||
-                vehicle.linkedVehicleName.toLowerCase().includes(term)
+            vehicles = vehicles.filter(
+                (vehicle) =>
+                    vehicle.displayName.toLowerCase().includes(term) ||
+                    vehicle.samsaraVehicleId.toLowerCase().includes(term) ||
+                    vehicle.samsaraVehicleVin?.toLowerCase().includes(term) ||
+                    vehicle.linkedVehicleName.toLowerCase().includes(term)
             );
         }
 
         // Filter by sync status
         if (this.statusFilter !== 'all') {
-            vehicles = vehicles.filter(vehicle => vehicle.syncStatus === this.statusFilter);
+            vehicles = vehicles.filter((vehicle) => vehicle.syncStatus === this.statusFilter);
         }
 
         // Filter by link status
         if (this.linkFilter !== 'all') {
             if (this.linkFilter === 'linked') {
-                vehicles = vehicles.filter(vehicle => vehicle.isLinked);
+                vehicles = vehicles.filter((vehicle) => vehicle.isLinked);
             } else if (this.linkFilter === 'unlinked') {
-                vehicles = vehicles.filter(vehicle => !vehicle.isLinked);
+                vehicles = vehicles.filter((vehicle) => !vehicle.isLinked);
             }
         }
 
@@ -48,7 +49,7 @@ export default class SamsaraVehiclesListComponent extends Component {
             { value: 'active', label: 'Active' },
             { value: 'pending', label: 'Pending' },
             { value: 'failed', label: 'Failed' },
-            { value: 'disabled', label: 'Disabled' }
+            { value: 'disabled', label: 'Disabled' },
         ];
     }
 
@@ -56,7 +57,7 @@ export default class SamsaraVehiclesListComponent extends Component {
         return [
             { value: 'all', label: 'All Vehicles' },
             { value: 'linked', label: 'Linked Only' },
-            { value: 'unlinked', label: 'Unlinked Only' }
+            { value: 'unlinked', label: 'Unlinked Only' },
         ];
     }
 
@@ -101,4 +102,3 @@ export default class SamsaraVehiclesListComponent extends Component {
         this.notifications.info('Location history feature coming soon');
     }
 }
-

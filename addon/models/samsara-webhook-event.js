@@ -17,10 +17,10 @@ export default class SamsaraWebhookEventModel extends Model {
     @computed('processingStatus')
     get processingStatusText() {
         const statusMap = {
-            'pending': 'Pending',
-            'processing': 'Processing',
-            'processed': 'Processed',
-            'failed': 'Failed'
+            pending: 'Pending',
+            processing: 'Processing',
+            processed: 'Processed',
+            failed: 'Failed',
         };
         return statusMap[this.processingStatus] || 'Unknown';
     }
@@ -28,10 +28,10 @@ export default class SamsaraWebhookEventModel extends Model {
     @computed('processingStatus')
     get processingStatusClass() {
         const classMap = {
-            'pending': 'text-yellow-600 bg-yellow-100',
-            'processing': 'text-blue-600 bg-blue-100',
-            'processed': 'text-green-600 bg-green-100',
-            'failed': 'text-red-600 bg-red-100'
+            pending: 'text-yellow-600 bg-yellow-100',
+            processing: 'text-blue-600 bg-blue-100',
+            processed: 'text-green-600 bg-green-100',
+            failed: 'text-red-600 bg-red-100',
         };
         return classMap[this.processingStatus] || 'text-gray-600 bg-gray-100';
     }
@@ -39,11 +39,11 @@ export default class SamsaraWebhookEventModel extends Model {
     @computed('eventType')
     get eventTypeText() {
         const typeMap = {
-            'Alert': 'Alert',
-            'VehicleLocationUpdate': 'Location Update',
-            'location': 'Location Update',
-            'VehicleUpdate': 'Vehicle Update',
-            'vehicle': 'Vehicle Update'
+            Alert: 'Alert',
+            VehicleLocationUpdate: 'Location Update',
+            location: 'Location Update',
+            VehicleUpdate: 'Vehicle Update',
+            vehicle: 'Vehicle Update',
         };
         return typeMap[this.eventType] || this.eventType;
     }
@@ -51,11 +51,11 @@ export default class SamsaraWebhookEventModel extends Model {
     @computed('eventType')
     get eventTypeIcon() {
         const iconMap = {
-            'Alert': 'exclamation-triangle',
-            'VehicleLocationUpdate': 'map-marker-alt',
-            'location': 'map-marker-alt',
-            'VehicleUpdate': 'car',
-            'vehicle': 'car'
+            Alert: 'exclamation-triangle',
+            VehicleLocationUpdate: 'map-marker-alt',
+            location: 'map-marker-alt',
+            VehicleUpdate: 'car',
+            vehicle: 'car',
         };
         return iconMap[this.eventType] || 'bell';
     }
@@ -63,11 +63,11 @@ export default class SamsaraWebhookEventModel extends Model {
     @computed('eventType')
     get eventTypeClass() {
         const classMap = {
-            'Alert': 'text-red-600',
-            'VehicleLocationUpdate': 'text-blue-600',
-            'location': 'text-blue-600',
-            'VehicleUpdate': 'text-green-600',
-            'vehicle': 'text-green-600'
+            Alert: 'text-red-600',
+            VehicleLocationUpdate: 'text-blue-600',
+            location: 'text-blue-600',
+            VehicleUpdate: 'text-green-600',
+            vehicle: 'text-green-600',
         };
         return classMap[this.eventType] || 'text-gray-600';
     }
@@ -105,7 +105,7 @@ export default class SamsaraWebhookEventModel extends Model {
                 id: data.event.device.id,
                 name: data.event.device.name,
                 vin: data.event.device.vin,
-                serial: data.event.device.serial
+                serial: data.event.device.serial,
             };
         }
         if (data && data.vehicle) {
@@ -113,13 +113,13 @@ export default class SamsaraWebhookEventModel extends Model {
                 id: data.vehicle.id,
                 name: data.vehicle.name,
                 vin: data.vehicle.vin,
-                serial: data.vehicle.serial
+                serial: data.vehicle.serial,
             };
         }
         return null;
     }
 
-    @computed('vehicleInfo')
+    @computed('vehicleInfo.name')
     get vehicleName() {
         return this.vehicleInfo?.name || 'Unknown Vehicle';
     }
@@ -133,7 +133,7 @@ export default class SamsaraWebhookEventModel extends Model {
                 longitude: data.location.longitude,
                 timestamp: data.location.time,
                 speed: data.location.speed,
-                heading: data.location.heading
+                heading: data.location.heading,
             };
         }
         return null;
@@ -144,7 +144,7 @@ export default class SamsaraWebhookEventModel extends Model {
         return !!this.locationData;
     }
 
-    @computed('eventData')
+    @computed('eventData', 'eventType')
     get alertInfo() {
         const data = this.eventData;
         if (data && data.event && this.eventType === 'Alert') {
@@ -152,7 +152,7 @@ export default class SamsaraWebhookEventModel extends Model {
                 condition: data.event.alertConditionDescription,
                 details: data.event.details,
                 summary: data.event.summary,
-                resolved: data.event.resolved
+                resolved: data.event.resolved,
             };
         }
         return null;
@@ -176,10 +176,9 @@ export default class SamsaraWebhookEventModel extends Model {
         return this.processedAt;
     }
 
-    @computed('eventId', 'eventType', 'createdAt')
+    @computed('createdAt', 'eventId', 'eventType', 'eventTypeText')
     get displayTitle() {
         const timestamp = this.createdAt ? this.createdAt.toLocaleString() : 'Unknown time';
         return `${this.eventTypeText} - ${timestamp}`;
     }
 }
-

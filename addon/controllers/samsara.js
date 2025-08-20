@@ -21,7 +21,7 @@ export default class SamsaraController extends Controller {
 
     @computed('model.credentials.@each.isActive')
     get activeCredential() {
-        return this.model.credentials.find(cred => cred.isActive);
+        return this.model.credentials.find((cred) => cred.isActive);
     }
 
     @computed('activeCredential')
@@ -36,7 +36,7 @@ export default class SamsaraController extends Controller {
 
     @computed('model.vehicles.@each.syncStatus')
     get activeSyncs() {
-        return this.model.vehicles.filter(v => v.syncStatus === 'active').length;
+        return this.model.vehicles.filter((v) => v.syncStatus === 'active').length;
     }
 
     @computed('activeCredential.lastSyncAt')
@@ -77,7 +77,7 @@ export default class SamsaraController extends Controller {
             await credential.save();
             this.notifications.success('Samsara credential saved successfully');
             this.closeCredentialModal();
-            
+
             // Refresh credentials
             this.model.credentials.reload();
         } catch (error) {
@@ -101,9 +101,9 @@ export default class SamsaraController extends Controller {
     async testCredential(credential) {
         try {
             const response = await this.fetch.request(`/samsara/credentials/${credential.id}/test`, {
-                method: 'POST'
+                method: 'POST',
             });
-            
+
             if (response.success) {
                 this.notifications.success('Connection test successful');
             } else {
@@ -118,9 +118,9 @@ export default class SamsaraController extends Controller {
     async activateCredential(credential) {
         try {
             await this.fetch.request(`/samsara/credentials/${credential.id}/activate`, {
-                method: 'POST'
+                method: 'POST',
             });
-            
+
             this.notifications.success('Credential activated successfully');
             this.model.credentials.reload();
         } catch (error) {
@@ -132,13 +132,13 @@ export default class SamsaraController extends Controller {
     *syncAllVehicles() {
         try {
             this.isSyncing = true;
-            
+
             const response = yield this.fetch.request('/samsara/vehicles/sync-all', {
-                method: 'POST'
+                method: 'POST',
             });
-            
+
             this.notifications.success(`Sync completed: ${response.result.created} created, ${response.result.updated} updated`);
-            
+
             // Refresh vehicles
             this.model.vehicles.reload();
         } catch (error) {
@@ -152,9 +152,9 @@ export default class SamsaraController extends Controller {
     async syncVehicle(vehicle) {
         try {
             await this.fetch.request(`/samsara/vehicles/${vehicle.id}/sync`, {
-                method: 'POST'
+                method: 'POST',
             });
-            
+
             this.notifications.success('Vehicle synced successfully');
             vehicle.reload();
         } catch (error) {
@@ -180,10 +180,10 @@ export default class SamsaraController extends Controller {
             await this.fetch.request(`/samsara/vehicles/${samsaraVehicle.id}/link`, {
                 method: 'POST',
                 body: JSON.stringify({
-                    vehicle_uuid: fleetOpsVehicle.id
-                })
+                    vehicle_uuid: fleetOpsVehicle.id,
+                }),
             });
-            
+
             this.notifications.success('Vehicle linked successfully');
             this.closeLinkModal();
             samsaraVehicle.reload();
@@ -197,9 +197,9 @@ export default class SamsaraController extends Controller {
         if (confirm('Are you sure you want to unlink this vehicle?')) {
             try {
                 await this.fetch.request(`/samsara/vehicles/${samsaraVehicle.id}/unlink`, {
-                    method: 'POST'
+                    method: 'POST',
                 });
-                
+
                 this.notifications.success('Vehicle unlinked successfully');
                 samsaraVehicle.reload();
             } catch (error) {
@@ -236,9 +236,9 @@ export default class SamsaraController extends Controller {
     async retryEvent(event) {
         try {
             await this.fetch.request(`/samsara/webhook-events/${event.id}/retry`, {
-                method: 'POST'
+                method: 'POST',
             });
-            
+
             this.notifications.success('Event retry initiated');
             event.reload();
         } catch (error) {
@@ -257,4 +257,3 @@ export default class SamsaraController extends Controller {
         this.notifications.success('Settings saved successfully');
     }
 }
-

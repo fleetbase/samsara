@@ -1,0 +1,15 @@
+<div class="space-y-4">
+    <ContentPanel @title="Samsara Credentials" @open={{true}} @pad={{true}} @panelBodyClass="bg-white dark:bg-gray-800">
+        <InputGroup @name="API Token" @helpText="Your Samsara API Token.">
+            {{! template-lint-disable require-input-label }}
+            <Input @value={{this.accessToken}} placeholder="Samsara API Token" class="form-input form-input-sm w-full" disabled={{this.getSamsaraSettings.isRunning}} />
+        </InputGroup>
+        <InputGroup @name="Sandbox">
+            {{! template-lint-disable require-input-label }}
+            <Toggle @label="Sandbox" @value={{this.sandbox}} @onToggle={{fn (mut this.sandbox)}} />
+        </InputGroup>
+    </ContentPanel>
+    <ContentPanel @title="Synced Vehicles" @open={{true}} @pad={{true}} @panelBodyClass="bg-white dark:bg-gray-800">
+        
+    </ContentPanel>
+</div>
