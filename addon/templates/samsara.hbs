@@ -1,0 +1,180 @@
+{{page-title "Samsara Integration"}}
+
+<Layout::Section::Header @title="Samsara Integration" @subtitle="Vehicle Data Import & Location Tracking">
+    <div class="flex items-center space-x-2">
+        <Button 
+            @type="primary" 
+            @icon="plus" 
+            @text="Add Credential" 
+            @onClick={{this.openCredentialModal}} 
+        />
+        <Button 
+            @type="default" 
+            @icon="refresh-cw" 
+            @text="Sync All" 
+            @onClick={{this.syncAllVehicles}}
+            @isLoading={{this.isSyncing}}
+        />
+    </div>
+</Layout::Section::Header>
+
+<Layout::Section::Body>
+    {{#if this.hasActiveCredential}}
+        <!-- Dashboard Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <FaIcon @icon="car" @size="2x" class="text-blue-500" />
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">Total Vehicles</p>
+                        <p class="text-2xl font-semibold text-gray-900">{{this.totalVehicles}}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <FaIcon @icon="sync" @size="2x" class="text-green-500" />
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">Active Syncs</p>
+                        <p class="text-2xl font-semibold text-gray-900">{{this.activeSyncs}}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <FaIcon @icon="clock" @size="2x" class="text-yellow-500" />
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">Last Sync</p>
+                        <p class="text-sm font-semibold text-gray-900">{{moment-from-now this.lastSyncTime}}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <FaIcon @icon="bell" @size="2x" class="text-red-500" />
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">Recent Events</p>
+                        <p class="text-2xl font-semibold text-gray-900">{{this.recentEventsCount}}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="mb-6">
+            <nav class="flex space-x-8" aria-label="Tabs">
+                <button 
+                    type="button" 
+                    class="{{if (eq this.activeTab 'vehicles') 'border-blue-500 text-blue-600' 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}} whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm"
+                    {{on "click" (fn this.setActiveTab "vehicles")}}
+                >
+                    Vehicles
+                </button>
+                <button 
+                    type="button" 
+                    class="{{if (eq this.activeTab 'credentials') 'border-blue-500 text-blue-600' 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}} whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm"
+                    {{on "click" (fn this.setActiveTab "credentials")}}
+                >
+                    Credentials
+                </button>
+                <button 
+                    type="button" 
+                    class="{{if (eq this.activeTab 'events') 'border-blue-500 text-blue-600' 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}} whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm"
+                    {{on "click" (fn this.setActiveTab "events")}}
+                >
+                    Webhook Events
+                </button>
+                <button 
+                    type="button" 
+                    class="{{if (eq this.activeTab 'settings') 'border-blue-500 text-blue-600' 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}} whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm"
+                    {{on "click" (fn this.setActiveTab "settings")}}
+                >
+                    Settings
+                </button>
+            </nav>
+        </div>
+
+        <!-- Tab Content -->
+        {{#if (eq this.activeTab "vehicles")}}
+            <SamsaraVehiclesList 
+                @vehicles={{this.model.vehicles}}
+                @onSync={{this.syncVehicle}}
+                @onLink={{this.linkVehicle}}
+                @onUnlink={{this.unlinkVehicle}}
+                @onDelete={{this.deleteVehicle}}
+            />
+        {{else if (eq this.activeTab "credentials")}}
+            <SamsaraCredentialsList 
+                @credentials={{this.model.credentials}}
+                @onEdit={{this.editCredential}}
+                @onDelete={{this.deleteCredential}}
+                @onTest={{this.testCredential}}
+                @onActivate={{this.activateCredential}}
+            />
+        {{else if (eq this.activeTab "events")}}
+            <SamsaraWebhookEventsList 
+                @events={{this.model.webhookEvents}}
+                @onRetry={{this.retryEvent}}
+                @onView={{this.viewEvent}}
+            />
+        {{else if (eq this.activeTab "settings")}}
+            <SamsaraSettings 
+                @activeCredential={{this.activeCredential}}
+                @onSave={{this.saveSettings}}
+            />
+        {{/if}}
+    {{else}}
+        <!-- No Credential Setup -->
+        <div class="text-center py-12">
+            <FaIcon @icon="plug" @size="3x" class="text-gray-400 mb-4" />
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No Samsara Credentials Configured</h3>
+            <p class="text-gray-500 mb-6">Get started by adding your Samsara API credentials to begin importing vehicle data.</p>
+            <Button 
+                @type="primary" 
+                @icon="plus" 
+                @text="Add Samsara Credentials" 
+                @onClick={{this.openCredentialModal}} 
+            />
+        </div>
+    {{/if}}
+</Layout::Section::Body>
+
+<!-- Modals -->
+{{#if this.showCredentialModal}}
+    <SamsaraCredentialModal 
+        @credential={{this.editingCredential}}
+        @onSave={{this.saveCredential}}
+        @onCancel={{this.closeCredentialModal}}
+        @isVisible={{this.showCredentialModal}}
+    />
+{{/if}}
+
+{{#if this.showVehicleLinkModal}}
+    <SamsaraVehicleLinkModal 
+        @samsaraVehicle={{this.linkingVehicle}}
+        @fleetOpsVehicles={{this.fleetOpsVehicles}}
+        @onSave={{this.saveLinkVehicle}}
+        @onCancel={{this.closeLinkModal}}
+        @isVisible={{this.showVehicleLinkModal}}
+    />
+{{/if}}
+
+{{#if this.showEventModal}}
+    <SamsaraEventModal 
+        @event={{this.viewingEvent}}
+        @onClose={{this.closeEventModal}}
+        @isVisible={{this.showEventModal}}
+    />
+{{/if}}
+

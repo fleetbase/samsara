@@ -1,0 +1,10 @@
+{
+    "name": "fleetbase/samsara",
+    "version": "0.0.1",
+    "description": "Vehicle Data Import & Location Integration via Samsara API",
+    "repository": "https://github.com/fleetbase/samsara",
+    "license": "AGPL-3.0-or-later",
+    "author": "Fleetbase Pte Ltd <hello@fleetbase.io>",
+    "engine": "package.json",
+    "api": "composer.json"
+}

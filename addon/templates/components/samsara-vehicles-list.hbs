@@ -1,0 +1,229 @@
+<div class="bg-white shadow rounded-lg">
+    <!-- Header with filters -->
+    <div class="px-6 py-4 border-b border-gray-200">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+            <h3 class="text-lg font-medium text-gray-900">Samsara Vehicles</h3>
+            
+            <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                <!-- Search -->
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <FaIcon @icon="search" class="text-gray-400" />
+                    </div>
+                    <input
+                        type="text"
+                        class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        placeholder="Search vehicles..."
+                        value={{this.searchTerm}}
+                        {{on "input" this.updateSearchTerm}}
+                    />
+                </div>
+
+                <!-- Status Filter -->
+                <select
+                    class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                    {{on "change" (fn this.updateStatusFilter)}}
+                >
+                    {{#each this.statusOptions as |option|}}
+                        <option value={{option.value}} selected={{eq this.statusFilter option.value}}>
+                            {{option.label}}
+                        </option>
+                    {{/each}}
+                </select>
+
+                <!-- Link Filter -->
+                <select
+                    class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                    {{on "change" (fn this.updateLinkFilter)}}
+                >
+                    {{#each this.linkOptions as |option|}}
+                        <option value={{option.value}} selected={{eq this.linkFilter option.value}}>
+                            {{option.label}}
+                        </option>
+                    {{/each}}
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vehicles Table -->
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Vehicle
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        FleetOps Link
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Last Location
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Last Sync
+                    </th>
+                    <th scope="col" class="relative px-6 py-3">
+                        <span class="sr-only">Actions</span>
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {{#each this.filteredVehicles as |vehicle|}}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <FaIcon @icon="car" @size="lg" class="text-gray-400" />
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900">
+                                        {{vehicle.displayName}}
+                                    </div>
+                                    <div class="text-sm text-gray-500">
+                                        ID: {{vehicle.samsaraVehicleId}}
+                                    </div>
+                                    {{#if vehicle.samsaraVehicleVin}}
+                                        <div class="text-xs text-gray-400">
+                                            VIN: {{vehicle.displayVin}}
+                                        </div>
+                                    {{/if}}
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{vehicle.syncStatusClass}}">
+                                {{vehicle.syncStatusText}}
+                            </span>
+                            {{#if vehicle.isSyncing}}
+                                <div class="mt-1">
+                                    <FaIcon @icon="spinner" @spin={{true}} class="text-blue-500" />
+                                </div>
+                            {{/if}}
+                            {{#if vehicle.hasFailed}}
+                                <div class="mt-1 text-xs text-red-600">
+                                    {{vehicle.lastSyncError}}
+                                </div>
+                            {{/if}}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">
+                                <span class="{{vehicle.linkStatusClass}}">
+                                    {{vehicle.linkStatusText}}
+                                </span>
+                            </div>
+                            {{#if vehicle.isLinked}}
+                                <div class="text-xs text-gray-500">
+                                    {{vehicle.linkedVehicleName}}
+                                </div>
+                            {{/if}}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{#if vehicle.hasLocation}}
+                                <div class="flex items-center">
+                                    <FaIcon @icon="map-marker-alt" class="text-green-500 mr-1" />
+                                    <span>{{vehicle.locationText}}</span>
+                                </div>
+                                <div class="text-xs text-gray-400">
+                                    {{moment-from-now vehicle.lastLocation.timestamp}}
+                                </div>
+                            {{else}}
+                                <span class="text-gray-400">No location data</span>
+                            {{/if}}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{#if vehicle.lastSyncAt}}
+                                {{moment-from-now vehicle.lastSyncAt}}
+                            {{else}}
+                                <span class="text-gray-400">Never</span>
+                            {{/if}}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div class="flex items-center justify-end space-x-2">
+                                <!-- Sync Button -->
+                                {{#if vehicle.canSync}}
+                                    <button
+                                        type="button"
+                                        class="text-blue-600 hover:text-blue-900"
+                                        {{on "click" (fn this.syncVehicle vehicle)}}
+                                        disabled={{vehicle.isSyncing}}
+                                    >
+                                        <FaIcon @icon="sync" @spin={{vehicle.isSyncing}} />
+                                    </button>
+                                {{/if}}
+
+                                <!-- Link/Unlink Button -->
+                                {{#if vehicle.isLinked}}
+                                    <button
+                                        type="button"
+                                        class="text-yellow-600 hover:text-yellow-900"
+                                        {{on "click" (fn this.unlinkVehicle vehicle)}}
+                                        title="Unlink from FleetOps vehicle"
+                                    >
+                                        <FaIcon @icon="unlink" />
+                                    </button>
+                                {{else}}
+                                    <button
+                                        type="button"
+                                        class="text-green-600 hover:text-green-900"
+                                        {{on "click" (fn this.linkVehicle vehicle)}}
+                                        title="Link to FleetOps vehicle"
+                                    >
+                                        <FaIcon @icon="link" />
+                                    </button>
+                                {{/if}}
+
+                                <!-- Location History Button -->
+                                {{#if vehicle.hasLocation}}
+                                    <button
+                                        type="button"
+                                        class="text-purple-600 hover:text-purple-900"
+                                        {{on "click" (fn this.viewLocationHistory vehicle)}}
+                                        title="View location history"
+                                    >
+                                        <FaIcon @icon="history" />
+                                    </button>
+                                {{/if}}
+
+                                <!-- Delete Button -->
+                                <button
+                                    type="button"
+                                    class="text-red-600 hover:text-red-900"
+                                    {{on "click" (fn this.deleteVehicle vehicle)}}
+                                    title="Delete vehicle sync"
+                                >
+                                    <FaIcon @icon="trash" />
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                {{else}}
+                    <tr>
+                        <td colspan="6" class="px-6 py-12 text-center">
+                            <div class="text-gray-500">
+                                {{#if this.searchTerm}}
+                                    No vehicles found matching "{{this.searchTerm}}"
+                                {{else}}
+                                    No vehicles found. Sync vehicles from Samsara to get started.
+                                {{/if}}
+                            </div>
+                        </td>
+                    </tr>
+                {{/each}}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Footer with count -->
+    {{#if this.filteredVehicles.length}}
+        <div class="px-6 py-3 border-t border-gray-200 bg-gray-50">
+            <div class="text-sm text-gray-700">
+                Showing {{this.filteredVehicles.length}} of {{this.args.vehicles.length}} vehicles
+            </div>
+        </div>
+    {{/if}}
+</div>
+
