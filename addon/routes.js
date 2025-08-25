@@ -1,5 +1,3 @@
 import buildRoutes from 'ember-engines/routes';
 
-export default buildRoutes(function () {
-    this.route('home', { path: '/' });
-});
+export default buildRoutes(function () {});

@@ -3,72 +3,62 @@ import { computed } from '@ember/object';
 
 export default class SamsaraCredentialModel extends Model {
     @attr('string') name;
-    @attr('string') apiToken;
-    @attr('string') apiBaseUrl;
-    @attr('string') webhookUrl;
-    @attr('string') webhookSecret;
-    @attr('boolean') isActive;
-    @attr('boolean') isSandbox;
-    @attr('number') syncInterval;
-    @attr('date') lastSyncAt;
-    @attr() meta;
-    @attr('date') createdAt;
-    @attr('date') updatedAt;
+    @attr('string') api_token;
+    @attr('string') api_base_url;
+    @attr('string') webhook_url;
+    @attr('string') webhook_secret;
+    @attr('boolean') is_active;
+    @attr('boolean') is_sandbox;
+    @attr('number') sync_interval;
+    @attr('date') last_sync_at;
+    @attr('raw') meta;
+    @attr('date') created_at;
+    @attr('date') updated_at;
 
     @hasMany('samsara-vehicle') vehicles;
 
-    @computed('isActive')
+    @computed('is_active')
     get statusText() {
-        return this.isActive ? 'Active' : 'Inactive';
+        return this.is_active ? 'Active' : 'Inactive';
     }
 
-    @computed('isActive')
-    get statusClass() {
-        return this.isActive ? 'text-green-600' : 'text-gray-500';
-    }
-
-    @computed('isSandbox')
+    @computed('is_sandbox')
     get environmentText() {
-        return this.isSandbox ? 'Sandbox' : 'Production';
+        return this.is_sandbox ? 'Sandbox' : 'Production';
     }
 
-    @computed('isSandbox')
-    get environmentClass() {
-        return this.isSandbox ? 'text-yellow-600' : 'text-blue-600';
-    }
-
-    @computed('lastSyncAt')
+    @computed('last_sync_at')
     get lastSyncText() {
-        if (!this.lastSyncAt) {
+        if (!this.last_sync_at) {
             return 'Never';
         }
-        return this.lastSyncAt;
+        return this.last_sync_at;
     }
 
-    @computed('syncInterval')
+    @computed('last_sync_at', 'sync_interval')
     get syncIntervalText() {
-        const interval = this.syncInterval || 5;
+        const interval = this.sync_interval || 5;
         return `${interval} minute${interval !== 1 ? 's' : ''}`;
     }
 
-    @computed('apiBaseUrl')
+    @computed('api_base_url')
     get displayApiUrl() {
-        return this.apiBaseUrl || 'https://api.samsara.com';
+        return this.api_base_url || 'https://api.samsara.com';
     }
 
-    @computed('webhookUrl')
+    @computed('webhook_url')
     get hasWebhook() {
-        return !!this.webhookUrl;
+        return !!this.webhook_url;
     }
 
-    @computed('apiToken')
+    @computed('api_token')
     get hasApiToken() {
-        return !!this.apiToken;
+        return !!this.api_token;
     }
 
-    @computed('hasApiToken', 'isActive')
+    @computed('hasApiToken', 'is_active')
     get isConfigured() {
-        return this.hasApiToken && this.isActive;
+        return this.hasApiToken && this.is_active;
     }
 
     @computed('name', 'environmentText')

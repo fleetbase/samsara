@@ -32,7 +32,6 @@ return new class extends Migration
 
             $table->unique(['company_uuid', 'samsara_vehicle_id']);
             $table->index(['company_uuid', 'sync_status']);
-            $table->index(['vehicle_uuid']);
             $table->index(['last_sync_at']);
         });
     }

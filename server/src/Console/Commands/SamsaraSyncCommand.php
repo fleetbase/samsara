@@ -6,7 +6,6 @@ use Fleetbase\Models\Company;
 use Fleetbase\Samsara\Models\SamsaraCredential;
 use Fleetbase\Samsara\Services\SamsaraSyncService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 
 class SamsaraSyncCommand extends Command
 {
@@ -49,12 +48,12 @@ class SamsaraSyncCommand extends Command
     public function handle(): int
     {
         $this->info('🚀 Starting Samsara synchronization...');
-        
-        $companyUuid = $this->option('company');
-        $credentialUuid = $this->option('credential');
-        $force = $this->option('force');
+
+        $companyUuid     = $this->option('company');
+        $credentialUuid  = $this->option('credential');
+        $force           = $this->option('force');
         $includeInactive = $this->option('include-inactive');
-        $dryRun = $this->option('dry-run');
+        $dryRun          = $this->option('dry-run');
 
         if ($dryRun) {
             $this->warn('🔍 DRY RUN MODE - No changes will be made');
@@ -71,6 +70,7 @@ class SamsaraSyncCommand extends Command
             if ($this->output->isVerbose()) {
                 $this->error($e->getTraceAsString());
             }
+
             return Command::FAILURE;
         }
     }
@@ -81,16 +81,17 @@ class SamsaraSyncCommand extends Command
     protected function syncSpecificCompany(string $companyUuid, ?string $credentialUuid, bool $force, bool $includeInactive, bool $dryRun): int
     {
         $company = Company::where('uuid', $companyUuid)->first();
-        
+
         if (!$company) {
             $this->error("❌ Company not found: {$companyUuid}");
+
             return Command::FAILURE;
         }
 
         $this->info("🏢 Syncing company: {$company->name} ({$companyUuid})");
 
         $credentialsQuery = SamsaraCredential::where('company_uuid', $companyUuid);
-        
+
         if ($credentialUuid) {
             $credentialsQuery->where('uuid', $credentialUuid);
         } else {
@@ -101,6 +102,7 @@ class SamsaraSyncCommand extends Command
 
         if ($credentials->isEmpty()) {
             $this->warn("⚠️  No active Samsara credentials found for company: {$company->name}");
+
             return Command::SUCCESS;
         }
 
@@ -109,14 +111,14 @@ class SamsaraSyncCommand extends Command
 
         foreach ($credentials as $credential) {
             $this->info("🔑 Using credential: {$credential->name}");
-            
+
             if ($dryRun) {
                 $result = $this->syncService->previewSync($credential, $includeInactive);
                 $this->displayDryRunResults($result);
             } else {
                 $result = $this->syncService->syncVehicles($credential, $force, $includeInactive);
                 $this->displaySyncResults($result);
-                
+
                 $totalSynced += $result['synced'] ?? 0;
                 $totalErrors += $result['errors'] ?? 0;
             }
@@ -134,14 +136,15 @@ class SamsaraSyncCommand extends Command
      */
     protected function syncAllCompanies(bool $force, bool $includeInactive, bool $dryRun): int
     {
-        $this->info("🌍 Syncing all companies with Samsara credentials...");
+        $this->info('🌍 Syncing all companies with Samsara credentials...');
 
         $companies = Company::whereHas('samsaraCredentials', function ($query) {
             $query->where('is_active', true);
         })->get();
 
         if ($companies->isEmpty()) {
-            $this->warn("⚠️  No companies found with active Samsara credentials");
+            $this->warn('⚠️  No companies found with active Samsara credentials');
+
             return Command::SUCCESS;
         }
 
@@ -150,16 +153,16 @@ class SamsaraSyncCommand extends Command
         $progressBar = $this->output->createProgressBar($companies->count());
         $progressBar->start();
 
-        $totalSynced = 0;
-        $totalErrors = 0;
+        $totalSynced        = 0;
+        $totalErrors        = 0;
         $companiesProcessed = 0;
 
         foreach ($companies as $company) {
             $progressBar->setMessage("Syncing: {$company->name}");
-            
+
             try {
                 $credentials = $company->samsaraCredentials()->where('is_active', true)->get();
-                
+
                 foreach ($credentials as $credential) {
                     if ($dryRun) {
                         $result = $this->syncService->previewSync($credential, $includeInactive);
@@ -169,14 +172,14 @@ class SamsaraSyncCommand extends Command
                         $totalErrors += $result['errors'] ?? 0;
                     }
                 }
-                
+
                 $companiesProcessed++;
             } catch (\Exception $e) {
                 $this->newLine();
                 $this->error("❌ Error syncing company {$company->name}: {$e->getMessage()}");
                 $totalErrors++;
             }
-            
+
             $progressBar->advance();
         }
 
@@ -211,7 +214,7 @@ class SamsaraSyncCommand extends Command
         );
 
         if (!empty($result['error_details'])) {
-            $this->warn("⚠️  Errors encountered:");
+            $this->warn('⚠️  Errors encountered:');
             foreach ($result['error_details'] as $error) {
                 $this->line("  • {$error}");
             }
@@ -223,7 +226,7 @@ class SamsaraSyncCommand extends Command
      */
     protected function displayDryRunResults(array $result): void
     {
-        $this->info("🔍 Dry Run Results:");
+        $this->info('🔍 Dry Run Results:');
         $this->table(
             ['Action', 'Count'],
             [
@@ -235,14 +238,13 @@ class SamsaraSyncCommand extends Command
         );
 
         if (!empty($result['sample_vehicles'])) {
-            $this->info("📋 Sample vehicles to be synced:");
+            $this->info('📋 Sample vehicles to be synced:');
             foreach (array_slice($result['sample_vehicles'], 0, 5) as $vehicle) {
                 $this->line("  • {$vehicle['name']} ({$vehicle['id']})");
             }
             if (count($result['sample_vehicles']) > 5) {
-                $this->line("  ... and " . (count($result['sample_vehicles']) - 5) . " more");
+                $this->line('  ... and ' . (count($result['sample_vehicles']) - 5) . ' more');
             }
         }
     }
 }
-

@@ -32,7 +32,6 @@ return new class extends Migration
             $table->index(['company_uuid', 'processing_status']);
             $table->index(['event_type', 'processing_status']);
             $table->index(['created_at']);
-            $table->index(['event_id']);
         });
     }
 

@@ -1,15 +1,42 @@
 <div class="space-y-4">
     <ContentPanel @title="Samsara Credentials" @open={{true}} @pad={{true}} @panelBodyClass="bg-white dark:bg-gray-800">
-        <InputGroup @name="API Token" @helpText="Your Samsara API Token.">
-            {{! template-lint-disable require-input-label }}
-            <Input @value={{this.accessToken}} placeholder="Samsara API Token" class="form-input form-input-sm w-full" disabled={{this.getSamsaraSettings.isRunning}} />
-        </InputGroup>
-        <InputGroup @name="Sandbox">
-            {{! template-lint-disable require-input-label }}
-            <Toggle @label="Sandbox" @value={{this.sandbox}} @onToggle={{fn (mut this.sandbox)}} />
-        </InputGroup>
+        <div class="flex flex-row justify-end mb-4">
+            <Button @text="New Samsara Credential" @icon="plus" @onClick={{this.createNewCredential}} @isLoading={{this.loadApiCredentials.isRunning}} />
+        </div>
+        <div class="space-y-4">
+            {{#each this.apiCredentials as |apiCredential|}}
+                <div class="border border-gray-700 shadow-sm rounded-md px-4 py-2">
+                    <InputGroup @name="Name" @helpText="Samsara API Credential nickname.">
+                        {{! template-lint-disable require-input-label }}
+                        <Input @value={{apiCredential.name}} placeholder="Samsara API Token" class="form-input form-input-sm w-full" disabled={{this.saveApiCredentials.isRunning}} />
+                    </InputGroup>
+                    <InputGroup @name="API Token" @helpText="Your Samsara API Token.">
+                        {{! template-lint-disable require-input-label }}
+                        <Input @value={{apiCredential.api_token}} placeholder="Samsara API Token" class="form-input form-input-sm w-full" disabled={{this.saveApiCredentials.isRunning}} />
+                    </InputGroup>
+                    <div class="flex flex-row items-center space-x-4">
+                        <InputGroup @name="Sandbox">
+                            {{! template-lint-disable require-input-label }}
+                            <Toggle @label="Sandbox" @value={{apiCredential.is_sandbox}} @onToggle={{fn (mut apiCredential.is_sandbox)}} @disabled={{this.saveApiCredentials.isRunning}} />
+                        </InputGroup>
+                        <Button @text="Test Connection" @icon="plug" @disabled={{this.saveApiCredentials.isRunning}} />
+                        <Button @text="Sync" @icon="sync" @disabled={{this.saveApiCredentials.isRunning}} />
+                        <Button @text="Delete" @type="danger" @icon="trash" @disabled={{this.deleteApiCredential.isRunning}} @onClick={{perform this.deleteApiCredential apiCredential}} />
+                    </div>
+                </div>
+            {{else}}
+                <div class="h-26 w-full flex flex-col items-center justify-center">
+                    <div class="text-gray-200 dark:text-gray-800 text-base mb-2">No Samsara Credentials</div>
+                    <Button @text="Create New Samsara Credential" @icon="plus" @size="xs" @onClick={{this.createNewCredential}} @isLoading={{this.loadApiCredentials.isRunning}} />
+                </div>
+            {{/each}}
+
+            {{#if this.apiCredentials}}
+                <div class="mt-4">
+                    <Button @type="primary" @text="Save" @icon="save" @onClick={{perform this.saveApiCredentials}} @isLoading={{this.saveApiCredentials.isRunning}} />
+                </div>
+            {{/if}}
+        </div>
     </ContentPanel>
-    <ContentPanel @title="Synced Vehicles" @open={{true}} @pad={{true}} @panelBodyClass="bg-white dark:bg-gray-800">
-        
-    </ContentPanel>
+    <ContentPanel @title="Synced Vehicles" @open={{true}} @pad={{true}} @panelBodyClass="bg-white dark:bg-gray-800" />
 </div>

@@ -9,11 +9,9 @@ use GuzzleHttp\Exception\RequestException;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Class SamsaraApiService
- * 
+ * Class SamsaraApiService.
+ *
  * Service for handling Samsara API integration
- * 
- * @package Fleetbase\Samsara\Services
  */
 class SamsaraApiService
 {
@@ -23,24 +21,21 @@ class SamsaraApiService
 
     public function __construct()
     {
-        $this->httpClient = new Client();
-        $this->timeout = 30; // 30 seconds timeout
+        $this->httpClient    = new Client();
+        $this->timeout       = 30; // 30 seconds timeout
         $this->retryAttempts = 3;
     }
 
     /**
-     * Get all vehicles from Samsara API
+     * Get all vehicles from Samsara API.
      *
-     * @param SamsaraCredential $credential
-     * @param array $options
-     * @return array
      * @throws \Exception
      */
     public function getAllVehicles(SamsaraCredential $credential, array $options = []): array
     {
         $vehicles = [];
-        $after = null;
-        $limit = $options['limit'] ?? 512;
+        $after    = null;
+        $limit    = $options['limit'] ?? 512;
 
         do {
             $params = [
@@ -58,25 +53,21 @@ class SamsaraApiService
                 ['query' => $params]
             );
 
-            $data = $response['data'] ?? [];
+            $data     = $response['data'] ?? [];
             $vehicles = array_merge($vehicles, $data);
 
             // Check for pagination
-            $pagination = $response['pagination'] ?? [];
-            $after = $pagination['endCursor'] ?? null;
+            $pagination  = $response['pagination'] ?? [];
+            $after       = $pagination['endCursor'] ?? null;
             $hasNextPage = $pagination['hasNextPage'] ?? false;
-
         } while ($hasNextPage && $after);
 
         return $vehicles;
     }
 
     /**
-     * Get a specific vehicle from Samsara API
+     * Get a specific vehicle from Samsara API.
      *
-     * @param SamsaraCredential $credential
-     * @param string $vehicleId
-     * @return array
      * @throws \Exception
      */
     public function getVehicle(SamsaraCredential $credential, string $vehicleId): array
@@ -91,15 +82,11 @@ class SamsaraApiService
     }
 
     /**
-     * Get vehicle locations snapshot
+     * Get vehicle locations snapshot.
      *
-     * @param SamsaraCredential $credential
-     * @param array $vehicleIds
-     * @param string|null $time
-     * @return array
      * @throws \Exception
      */
-    public function getVehicleLocations(SamsaraCredential $credential, array $vehicleIds = [], string $time = null): array
+    public function getVehicleLocations(SamsaraCredential $credential, array $vehicleIds = [], ?string $time = null): array
     {
         $params = [];
 
@@ -122,21 +109,16 @@ class SamsaraApiService
     }
 
     /**
-     * Get vehicle location history
+     * Get vehicle location history.
      *
-     * @param SamsaraCredential $credential
-     * @param string $vehicleId
-     * @param string $startTime
-     * @param string $endTime
-     * @return array
      * @throws \Exception
      */
     public function getVehicleLocationHistory(SamsaraCredential $credential, string $vehicleId, string $startTime, string $endTime): array
     {
         $params = [
             'vehicleIds' => $vehicleId,
-            'startTime' => $startTime,
-            'endTime' => $endTime,
+            'startTime'  => $startTime,
+            'endTime'    => $endTime,
         ];
 
         $response = $this->makeRequest(
@@ -150,21 +132,15 @@ class SamsaraApiService
     }
 
     /**
-     * Get vehicle stats (newer API for location and telemetry)
+     * Get vehicle stats (newer API for location and telemetry).
      *
-     * @param SamsaraCredential $credential
-     * @param array $vehicleIds
-     * @param array $types
-     * @param string|null $startTime
-     * @param string|null $endTime
-     * @return array
      * @throws \Exception
      */
-    public function getVehicleStats(SamsaraCredential $credential, array $vehicleIds, array $types = ['gps'], string $startTime = null, string $endTime = null): array
+    public function getVehicleStats(SamsaraCredential $credential, array $vehicleIds, array $types = ['gps'], ?string $startTime = null, ?string $endTime = null): array
     {
         $params = [
             'vehicleIds' => implode(',', $vehicleIds),
-            'types' => implode(',', $types),
+            'types'      => implode(',', $types),
         ];
 
         if ($startTime) {
@@ -186,12 +162,8 @@ class SamsaraApiService
     }
 
     /**
-     * Update vehicle information
+     * Update vehicle information.
      *
-     * @param SamsaraCredential $credential
-     * @param string $vehicleId
-     * @param array $data
-     * @return array
      * @throws \Exception
      */
     public function updateVehicle(SamsaraCredential $credential, string $vehicleId, array $data): array
@@ -207,19 +179,17 @@ class SamsaraApiService
     }
 
     /**
-     * Sync all vehicles for a credential
+     * Sync all vehicles for a credential.
      *
-     * @param SamsaraCredential $credential
-     * @return array
      * @throws \Exception
      */
     public function syncAllVehicles(SamsaraCredential $credential): array
     {
         $result = [
-            'total' => 0,
+            'total'   => 0,
             'created' => 0,
             'updated' => 0,
-            'errors' => [],
+            'errors'  => [],
         ];
 
         try {
@@ -229,7 +199,7 @@ class SamsaraApiService
             foreach ($samsaraVehicles as $vehicleData) {
                 try {
                     $vehicleId = $vehicleData['id'] ?? null;
-                    
+
                     if (!$vehicleId) {
                         $result['errors'][] = 'Vehicle missing ID: ' . json_encode($vehicleData);
                         continue;
@@ -247,14 +217,14 @@ class SamsaraApiService
                     } else {
                         // Create new vehicle
                         SamsaraVehicle::create([
-                            'company_uuid' => $credential->company_uuid,
-                            'samsara_vehicle_id' => $vehicleId,
-                            'samsara_vehicle_name' => $vehicleData['name'] ?? null,
-                            'samsara_vehicle_vin' => $vehicleData['vin'] ?? null,
+                            'company_uuid'           => $credential->company_uuid,
+                            'samsara_vehicle_id'     => $vehicleId,
+                            'samsara_vehicle_name'   => $vehicleData['name'] ?? null,
+                            'samsara_vehicle_vin'    => $vehicleData['vin'] ?? null,
                             'samsara_vehicle_serial' => $vehicleData['serial'] ?? null,
-                            'samsara_vehicle_data' => $vehicleData,
-                            'sync_status' => 'active',
-                            'last_sync_at' => now(),
+                            'samsara_vehicle_data'   => $vehicleData,
+                            'sync_status'            => 'active',
+                            'last_sync_at'           => now(),
                         ]);
                         $result['created']++;
                     }
@@ -262,14 +232,13 @@ class SamsaraApiService
                     $result['errors'][] = "Error syncing vehicle {$vehicleId}: " . $e->getMessage();
                     Log::error('Vehicle sync error', [
                         'vehicle_id' => $vehicleId,
-                        'error' => $e->getMessage(),
+                        'error'      => $e->getMessage(),
                     ]);
                 }
             }
 
             // Update credential last sync time
             $credential->updateLastSync();
-
         } catch (\Exception $e) {
             $result['errors'][] = 'API error: ' . $e->getMessage();
             throw $e;
@@ -279,18 +248,16 @@ class SamsaraApiService
     }
 
     /**
-     * Sync vehicle locations for all active vehicles
+     * Sync vehicle locations for all active vehicles.
      *
-     * @param SamsaraCredential $credential
-     * @return array
      * @throws \Exception
      */
     public function syncVehicleLocations(SamsaraCredential $credential): array
     {
         $result = [
-            'total' => 0,
+            'total'   => 0,
             'updated' => 0,
-            'errors' => [],
+            'errors'  => [],
         ];
 
         try {
@@ -303,7 +270,7 @@ class SamsaraApiService
                 return $result;
             }
 
-            $vehicleIds = $samsaraVehicles->pluck('samsara_vehicle_id')->toArray();
+            $vehicleIds      = $samsaraVehicles->pluck('samsara_vehicle_id')->toArray();
             $result['total'] = count($vehicleIds);
 
             // Get current locations from Samsara
@@ -312,30 +279,29 @@ class SamsaraApiService
             foreach ($locations as $locationData) {
                 try {
                     $vehicleId = $locationData['id'] ?? null;
-                    
+
                     if (!$vehicleId) {
                         continue;
                     }
 
                     $samsaraVehicle = $samsaraVehicles->firstWhere('samsara_vehicle_id', $vehicleId);
-                    
+
                     if ($samsaraVehicle) {
                         // Update vehicle data with location
-                        $vehicleData = $samsaraVehicle->samsara_vehicle_data ?? [];
+                        $vehicleData             = $samsaraVehicle->samsara_vehicle_data ?? [];
                         $vehicleData['location'] = $locationData;
-                        
+
                         $samsaraVehicle->update([
                             'samsara_vehicle_data' => $vehicleData,
-                            'last_sync_at' => now(),
+                            'last_sync_at'         => now(),
                         ]);
-                        
+
                         $result['updated']++;
                     }
                 } catch (\Exception $e) {
                     $result['errors'][] = "Error updating location for vehicle {$vehicleId}: " . $e->getMessage();
                 }
             }
-
         } catch (\Exception $e) {
             $result['errors'][] = 'Location sync error: ' . $e->getMessage();
             throw $e;
@@ -345,10 +311,7 @@ class SamsaraApiService
     }
 
     /**
-     * Test API connection
-     *
-     * @param SamsaraCredential $credential
-     * @return array
+     * Test API connection.
      */
     public function testConnection(SamsaraCredential $credential): array
     {
@@ -361,33 +324,28 @@ class SamsaraApiService
             );
 
             return [
-                'success' => true,
-                'message' => 'Connection successful',
+                'success'  => true,
+                'message'  => 'Connection successful',
                 'response' => $response,
             ];
         } catch (\Exception $e) {
             return [
                 'success' => false,
                 'message' => 'Connection failed: ' . $e->getMessage(),
-                'error' => $e->getMessage(),
+                'error'   => $e->getMessage(),
             ];
         }
     }
 
     /**
-     * Make HTTP request to Samsara API
+     * Make HTTP request to Samsara API.
      *
-     * @param SamsaraCredential $credential
-     * @param string $method
-     * @param string $endpoint
-     * @param array $options
-     * @return array
      * @throws \Exception
      */
     protected function makeRequest(SamsaraCredential $credential, string $method, string $endpoint, array $options = []): array
     {
         $url = rtrim($credential->api_base_url, '/') . $endpoint;
-        
+
         $defaultOptions = [
             'headers' => $credential->getAuthHeaders(),
             'timeout' => $this->timeout,
@@ -395,45 +353,44 @@ class SamsaraApiService
 
         $requestOptions = array_merge($defaultOptions, $options);
 
-        $attempt = 0;
+        $attempt       = 0;
         $lastException = null;
 
         while ($attempt < $this->retryAttempts) {
             try {
                 Log::debug('Samsara API request', [
-                    'method' => $method,
-                    'url' => $url,
+                    'method'  => $method,
+                    'url'     => $url,
                     'attempt' => $attempt + 1,
                 ]);
 
                 $response = $this->httpClient->request($method, $url, $requestOptions);
-                $body = $response->getBody()->getContents();
-                
+                $body     = $response->getBody()->getContents();
+
                 $data = json_decode($body, true);
-                
+
                 if (json_last_error() !== JSON_ERROR_NONE) {
                     throw new \Exception('Invalid JSON response: ' . json_last_error_msg());
                 }
 
                 Log::debug('Samsara API response', [
-                    'status' => $response->getStatusCode(),
+                    'status'     => $response->getStatusCode(),
                     'data_count' => is_array($data['data'] ?? null) ? count($data['data']) : 'N/A',
                 ]);
 
                 return $data;
-
             } catch (RequestException $e) {
                 $lastException = $e;
                 $attempt++;
 
                 $statusCode = $e->getResponse() ? $e->getResponse()->getStatusCode() : 0;
-                
+
                 Log::warning('Samsara API request failed', [
-                    'method' => $method,
-                    'url' => $url,
-                    'attempt' => $attempt,
+                    'method'      => $method,
+                    'url'         => $url,
+                    'attempt'     => $attempt,
                     'status_code' => $statusCode,
-                    'error' => $e->getMessage(),
+                    'error'       => $e->getMessage(),
                 ]);
 
                 // Don't retry on client errors (4xx)
@@ -450,7 +407,7 @@ class SamsaraApiService
 
         // If we get here, all attempts failed
         $errorMessage = $lastException ? $lastException->getMessage() : 'Unknown error';
-        
+
         if ($lastException && $lastException->getResponse()) {
             $responseBody = $lastException->getResponse()->getBody()->getContents();
             $errorMessage .= ' Response: ' . $responseBody;
@@ -460,10 +417,7 @@ class SamsaraApiService
     }
 
     /**
-     * Set request timeout
-     *
-     * @param int $timeout
-     * @return void
+     * Set request timeout.
      */
     public function setTimeout(int $timeout): void
     {
@@ -471,14 +425,10 @@ class SamsaraApiService
     }
 
     /**
-     * Set retry attempts
-     *
-     * @param int $attempts
-     * @return void
+     * Set retry attempts.
      */
     public function setRetryAttempts(int $attempts): void
     {
         $this->retryAttempts = $attempts;
     }
 }
-

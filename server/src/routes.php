@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::prefix(config('samsara.api.routing.prefix', 'starter'))->namespace('Fleetbase\Samsara\Http\Controllers')->group(
+Route::prefix(config('samsara.api.routing.prefix', 'samsara'))->namespace('Fleetbase\Samsara\Http\Controllers')->group(
     function ($router) {
         /*
         |--------------------------------------------------------------------------
@@ -69,33 +69,39 @@ Route::prefix(config('samsara.api.routing.prefix', 'starter'))->namespace('Fleet
                         // Sync and Health Check Endpoints
                         $router->prefix('sync')->group(function ($router) {
                             $router->post('/full', function () {
-                                $syncService = app(\Fleetbase\Samsara\Services\SamsaraSyncService::class);
+                                $syncService = app(Fleetbase\Samsara\Services\SamsaraSyncService::class);
+
                                 return response()->json($syncService->runFullSync());
                             });
-                            
+
                             $router->post('/stale-vehicles', function () {
-                                $syncService = app(\Fleetbase\Samsara\Services\SamsaraSyncService::class);
+                                $syncService = app(Fleetbase\Samsara\Services\SamsaraSyncService::class);
+
                                 return response()->json($syncService->syncStaleVehicles());
                             });
-                            
+
                             $router->post('/pending-webhooks', function () {
-                                $syncService = app(\Fleetbase\Samsara\Services\SamsaraSyncService::class);
+                                $syncService = app(Fleetbase\Samsara\Services\SamsaraSyncService::class);
+
                                 return response()->json($syncService->processPendingWebhooks());
                             });
-                            
+
                             $router->get('/status', function () {
-                                $syncService = app(\Fleetbase\Samsara\Services\SamsaraSyncService::class);
+                                $syncService = app(Fleetbase\Samsara\Services\SamsaraSyncService::class);
+
                                 return response()->json($syncService->getSyncStatus());
                             });
-                            
+
                             $router->get('/health', function () {
-                                $syncService = app(\Fleetbase\Samsara\Services\SamsaraSyncService::class);
+                                $syncService = app(Fleetbase\Samsara\Services\SamsaraSyncService::class);
+
                                 return response()->json($syncService->healthCheck());
                             });
-                            
+
                             $router->post('/cleanup', function () {
-                                $syncService = app(\Fleetbase\Samsara\Services\SamsaraSyncService::class);
-                                $days = request()->input('days', 30);
+                                $syncService = app(Fleetbase\Samsara\Services\SamsaraSyncService::class);
+                                $days        = request()->input('days', 30);
+
                                 return response()->json($syncService->cleanup($days));
                             });
                         });

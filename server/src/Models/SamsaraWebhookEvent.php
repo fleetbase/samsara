@@ -3,20 +3,20 @@
 namespace Fleetbase\Samsara\Models;
 
 use Fleetbase\Models\Model;
-use Fleetbase\Traits\HasUuid;
 use Fleetbase\Traits\HasPublicId;
+use Fleetbase\Traits\HasUuid;
 use Fleetbase\Traits\TracksApiCredential;
 
 /**
- * Class SamsaraWebhookEvent
- * 
+ * Class SamsaraWebhookEvent.
+ *
  * Model for tracking Samsara webhook events and location updates
- * 
- * @package Fleetbase\Samsara\Models
  */
 class SamsaraWebhookEvent extends Model
 {
-    use HasUuid, HasPublicId, TracksApiCredential;
+    use HasUuid;
+    use HasPublicId;
+    use TracksApiCredential;
 
     /**
      * The database table used by the model.
@@ -26,7 +26,7 @@ class SamsaraWebhookEvent extends Model
     protected $table = 'samsara_webhook_events';
 
     /**
-     * The type of public Id to generate
+     * The type of public Id to generate.
      *
      * @var string
      */
@@ -58,13 +58,13 @@ class SamsaraWebhookEvent extends Model
      * @var array
      */
     protected $casts = [
-        'event_data' => 'json',
-        'meta' => 'json',
+        'event_data'   => 'json',
+        'meta'         => 'json',
         'processed_at' => 'datetime',
     ];
 
     /**
-     * Dynamic attributes that are appended to model
+     * Dynamic attributes that are appended to model.
      *
      * @var array
      */
@@ -78,7 +78,7 @@ class SamsaraWebhookEvent extends Model
     protected $hidden = [];
 
     /**
-     * Relationship to the SamsaraCredential model
+     * Relationship to the SamsaraCredential model.
      *
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
@@ -88,7 +88,7 @@ class SamsaraWebhookEvent extends Model
     }
 
     /**
-     * Relationship to the SamsaraVehicle model
+     * Relationship to the SamsaraVehicle model.
      *
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
@@ -98,21 +98,21 @@ class SamsaraWebhookEvent extends Model
     }
 
     /**
-     * Get the location data from event if available
+     * Get the location data from event if available.
      *
      * @return array|null
      */
     public function getLocationDataAttribute()
     {
         $data = $this->event_data;
-        
+
         if ($this->event_type === 'location' && isset($data['location'])) {
             return [
-                'latitude' => $data['location']['latitude'] ?? null,
+                'latitude'  => $data['location']['latitude'] ?? null,
                 'longitude' => $data['location']['longitude'] ?? null,
                 'timestamp' => $data['location']['time'] ?? null,
-                'speed' => $data['location']['speed'] ?? null,
-                'heading' => $data['location']['heading'] ?? null,
+                'speed'     => $data['location']['speed'] ?? null,
+                'heading'   => $data['location']['heading'] ?? null,
             ];
         }
 
@@ -120,19 +120,19 @@ class SamsaraWebhookEvent extends Model
     }
 
     /**
-     * Get the vehicle information from event data
+     * Get the vehicle information from event data.
      *
      * @return array|null
      */
     public function getVehicleInfoAttribute()
     {
         $data = $this->event_data;
-        
+
         if (isset($data['vehicle'])) {
             return [
-                'id' => $data['vehicle']['id'] ?? null,
-                'name' => $data['vehicle']['name'] ?? null,
-                'vin' => $data['vehicle']['vin'] ?? null,
+                'id'     => $data['vehicle']['id'] ?? null,
+                'name'   => $data['vehicle']['name'] ?? null,
+                'vin'    => $data['vehicle']['vin'] ?? null,
                 'serial' => $data['vehicle']['serial'] ?? null,
             ];
         }
@@ -141,7 +141,7 @@ class SamsaraWebhookEvent extends Model
     }
 
     /**
-     * Check if event is processed
+     * Check if event is processed.
      *
      * @return bool
      */
@@ -151,7 +151,7 @@ class SamsaraWebhookEvent extends Model
     }
 
     /**
-     * Check if event processing failed
+     * Check if event processing failed.
      *
      * @return bool
      */
@@ -161,7 +161,7 @@ class SamsaraWebhookEvent extends Model
     }
 
     /**
-     * Check if event is pending processing
+     * Check if event is pending processing.
      *
      * @return bool
      */
@@ -171,7 +171,7 @@ class SamsaraWebhookEvent extends Model
     }
 
     /**
-     * Mark event as processed
+     * Mark event as processed.
      *
      * @return void
      */
@@ -179,27 +179,28 @@ class SamsaraWebhookEvent extends Model
     {
         $this->update([
             'processing_status' => 'processed',
-            'processed_at' => now(),
-            'error_message' => null,
+            'processed_at'      => now(),
+            'error_message'     => null,
         ]);
     }
 
     /**
-     * Mark event as failed
+     * Mark event as failed.
      *
      * @param string $error
+     *
      * @return void
      */
     public function markAsFailed($error)
     {
         $this->update([
             'processing_status' => 'failed',
-            'error_message' => $error,
+            'error_message'     => $error,
         ]);
     }
 
     /**
-     * Mark event as processing
+     * Mark event as processing.
      *
      * @return void
      */
@@ -209,29 +210,30 @@ class SamsaraWebhookEvent extends Model
     }
 
     /**
-     * Create event from webhook payload
+     * Create event from webhook payload.
      *
-     * @param array $payload
      * @param string $companyUuid
      * @param string $credentialUuid
+     *
      * @return static
      */
     public static function createFromWebhook(array $payload, $companyUuid, $credentialUuid)
     {
         return static::create([
-            'company_uuid' => $companyUuid,
+            'company_uuid'            => $companyUuid,
             'samsara_credential_uuid' => $credentialUuid,
-            'event_id' => $payload['eventId'] ?? null,
-            'event_type' => $payload['eventType'] ?? 'unknown',
-            'event_data' => $payload,
-            'processing_status' => 'pending',
+            'event_id'                => $payload['eventId'] ?? null,
+            'event_type'              => $payload['eventType'] ?? 'unknown',
+            'event_data'              => $payload,
+            'processing_status'       => 'pending',
         ]);
     }
 
     /**
-     * Scope to get pending events
+     * Scope to get pending events.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
+     *
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopePending($query)
@@ -240,9 +242,10 @@ class SamsaraWebhookEvent extends Model
     }
 
     /**
-     * Scope to get processed events
+     * Scope to get processed events.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
+     *
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeProcessed($query)
@@ -251,9 +254,10 @@ class SamsaraWebhookEvent extends Model
     }
 
     /**
-     * Scope to get failed events
+     * Scope to get failed events.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
+     *
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeFailed($query)
@@ -262,10 +266,11 @@ class SamsaraWebhookEvent extends Model
     }
 
     /**
-     * Scope to get events by type
+     * Scope to get events by type.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $type
+     * @param string                                $type
+     *
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeByType($query, $type)
@@ -274,10 +279,11 @@ class SamsaraWebhookEvent extends Model
     }
 
     /**
-     * Scope to get recent events
+     * Scope to get recent events.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param int $hours
+     * @param int                                   $hours
+     *
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeRecent($query, $hours = 24)
@@ -285,4 +291,3 @@ class SamsaraWebhookEvent extends Model
         return $query->where('created_at', '>=', now()->subHours($hours));
     }
 }
-

@@ -6,11 +6,9 @@ use Fleetbase\Samsara\Models\SamsaraCredential;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Class SamsaraCredentialTest
- * 
+ * Class SamsaraCredentialTest.
+ *
  * Unit tests for SamsaraCredential model
- * 
- * @package Fleetbase\Samsara\Tests\Unit
  */
 class SamsaraCredentialTest extends TestCase
 {
@@ -19,17 +17,17 @@ class SamsaraCredentialTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->credential = new SamsaraCredential([
-            'name' => 'Test Credential',
-            'api_token' => 'test-token-123',
-            'api_base_url' => 'https://api.samsara.com',
-            'webhook_url' => 'https://example.com/webhook',
+            'name'           => 'Test Credential',
+            'api_token'      => 'test-token-123',
+            'api_base_url'   => 'https://api.samsara.com',
+            'webhook_url'    => 'https://example.com/webhook',
             'webhook_secret' => 'secret-123',
-            'is_active' => true,
-            'is_sandbox' => false,
-            'sync_interval' => 5,
-            'company_uuid' => 'test-company-uuid',
+            'is_active'      => true,
+            'is_sandbox'     => false,
+            'sync_interval'  => 5,
+            'company_uuid'   => 'test-company-uuid',
         ]);
     }
 
@@ -58,7 +56,7 @@ class SamsaraCredentialTest extends TestCase
     public function testGetAuthHeaders()
     {
         $headers = $this->credential->getAuthHeaders();
-        
+
         $this->assertIsArray($headers);
         $this->assertArrayHasKey('Authorization', $headers);
         $this->assertArrayHasKey('Content-Type', $headers);
@@ -104,11 +102,11 @@ class SamsaraCredentialTest extends TestCase
     public function testModelCasts()
     {
         $expectedCasts = [
-            'is_active' => 'boolean',
-            'is_sandbox' => 'boolean',
+            'is_active'     => 'boolean',
+            'is_sandbox'    => 'boolean',
             'sync_interval' => 'integer',
-            'last_sync_at' => 'datetime',
-            'meta' => 'array',
+            'last_sync_at'  => 'datetime',
+            'meta'          => 'array',
         ];
 
         $actualCasts = $this->credential->getCasts();
@@ -125,7 +123,7 @@ class SamsaraCredentialTest extends TestCase
     public function testHiddenAttributes()
     {
         $hiddenAttributes = $this->credential->getHidden();
-        
+
         $this->assertContains('api_token', $hiddenAttributes);
         $this->assertContains('webhook_secret', $hiddenAttributes);
     }
@@ -134,7 +132,7 @@ class SamsaraCredentialTest extends TestCase
     {
         // Test that the model uses UUID trait
         $traits = class_uses_recursive(SamsaraCredential::class);
-        
+
         $this->assertContains(
             'Fleetbase\Traits\HasUuid',
             $traits,
@@ -146,7 +144,7 @@ class SamsaraCredentialTest extends TestCase
     {
         // Test that the model uses PublicId trait
         $traits = class_uses_recursive(SamsaraCredential::class);
-        
+
         $this->assertContains(
             'Fleetbase\Traits\HasPublicId',
             $traits,
@@ -159,4 +157,3 @@ class SamsaraCredentialTest extends TestCase
         $this->assertEquals('samsara_credentials', $this->credential->getTable());
     }
 }
-
