@@ -34,7 +34,7 @@ Route::prefix(config('samsara.api.routing.prefix', 'samsara'))->namespace('Fleet
                             $router->get('/active', 'SamsaraCredentialController@getActive');
                             $router->post('/test', 'SamsaraCredentialController@testCredentials');
                             $router->get('/{id}', 'SamsaraCredentialController@show');
-                            $router->patch('/{id}', 'SamsaraCredentialController@update');
+                            $router->put('/{id}', 'SamsaraCredentialController@update');
                             $router->delete('/{id}', 'SamsaraCredentialController@destroy');
                             $router->post('/{id}/test', 'SamsaraCredentialController@testConnection');
                             $router->post('/{id}/activate', 'SamsaraCredentialController@activate');
@@ -48,7 +48,7 @@ Route::prefix(config('samsara.api.routing.prefix', 'samsara'))->namespace('Fleet
                             $router->get('/available', 'SamsaraVehicleController@getAvailable');
                             $router->post('/sync-all', 'SamsaraVehicleController@syncAll');
                             $router->get('/{id}', 'SamsaraVehicleController@show');
-                            $router->patch('/{id}', 'SamsaraVehicleController@update');
+                            $router->put('/{id}', 'SamsaraVehicleController@update');
                             $router->delete('/{id}', 'SamsaraVehicleController@destroy');
                             $router->post('/{id}/sync', 'SamsaraVehicleController@sync');
                             $router->get('/{id}/location-history', 'SamsaraVehicleController@getLocationHistory');

@@ -28,7 +28,7 @@ class SamsaraSyncService
     /**
      * Sync vehicles from Samsara API and create/update FleetOps vehicles.
      */
-    public function syncVehicles(SamsaraCredential $credential, bool $force = false, bool $includeInactive = false): array
+    public function syncVehicles(SamsaraCredential $credential, bool $force = false): array
     {
         $startTime = microtime(true);
         $stats     = [
@@ -50,7 +50,7 @@ class SamsaraSyncService
             $this->markSyncInProgress($credential);
 
             // Get vehicles from Samsara API
-            $samsaraVehicles = $this->apiService->getVehicles($credential, $includeInactive);
+            $samsaraVehicles = $this->apiService->getVehicles($credential);
             $stats['total']  = count($samsaraVehicles);
 
             foreach ($samsaraVehicles as $vehicleData) {
@@ -124,16 +124,17 @@ class SamsaraSyncService
                     'vin'             => $vehicleData['vin'] ?? null,
                     'serial'          => $vehicleData['serial'] ?? null,
                     'license_plate'   => $vehicleData['licensePlate'] ?? null,
+                    'make'            => $vehicleData['make'] ?? null,
+                    'model'           => $vehicleData['model'] ?? null,
+                    'year'            => $vehicleData['year'] ?? null,
                     'vehicle_type'    => $this->mapVehicleType($vehicleData['vehicleType'] ?? 'unknown'),
                     'sync_status'     => 'active',
-                    'metadata'        => [
-                        'make'            => $vehicleData['make'] ?? null,
-                        'model'           => $vehicleData['model'] ?? null,
-                        'year'            => $vehicleData['year'] ?? null,
+                    'meta'            => [
                         'fuel_type'       => $vehicleData['fuelType'] ?? null,
                         'engine_hours'    => $vehicleData['engineHours'] ?? null,
                         'odometer_meters' => $vehicleData['odometerMeters'] ?? null,
                     ],
+                    'data'         => $vehicleData,
                     'last_sync_at' => now(),
                 ]
             );
@@ -150,7 +151,6 @@ class SamsaraSyncService
             if ($fleetOpsResult['vehicle']) {
                 $samsaraVehicle->update([
                     'vehicle_uuid' => $fleetOpsResult['vehicle']->uuid,
-                    'is_linked'    => true,
                 ]);
             }
 
@@ -196,22 +196,24 @@ class SamsaraSyncService
 
         $vehicleAttributes = [
             'company_uuid' => $samsaraVehicle->company_uuid,
-            'name'         => $samsaraVehicle->name,
             'vin'          => $samsaraVehicle->vin,
             'plate_number' => $samsaraVehicle->license_plate,
-            'year'         => $samsaraVehicle->metadata['year'] ?? null,
-            'make'         => $samsaraVehicle->metadata['make'] ?? null,
-            'model'        => $samsaraVehicle->metadata['model'] ?? null,
+            'year'         => $samsaraVehicle->year ?? null,
+            'make'         => $samsaraVehicle->make ?? null,
+            'model'        => $samsaraVehicle->model ?? null,
             'trim'         => null,
             'type'         => $this->mapToFleetOpsVehicleType($samsaraVehicle->vehicle_type),
             'status'       => 'active',
-            'meta'         => array_merge($samsaraVehicle->metadata ?? [], [
-                'samsara_vehicle_id'  => $samsaraVehicle->samsara_vehicle_id,
-                'samsara_synced'      => true,
-                'samsara_sync_source' => 'api',
-                'fuel_type'           => $samsaraVehicle->metadata['fuel_type'] ?? null,
-                'engine_hours'        => $samsaraVehicle->metadata['engine_hours'] ?? null,
-                'odometer_meters'     => $samsaraVehicle->metadata['odometer_meters'] ?? null,
+            'online'       => 0,
+            'meta'         => array_merge($samsaraVehicle->meta ?? [], [
+                'samsara_vehicle_id'      => $samsaraVehicle->samsara_vehicle_id,
+                'samsara_vehicle_name'    => $samsaraVehicle->name,
+                'samsara_vehicle_serial'  => $samsaraVehicle->serial,
+                'samsara_synced'          => true,
+                'samsara_sync_source'     => 'api',
+                'fuel_type'               => $samsaraVehicle->meta['fuel_type'] ?? null,
+                'engine_hours'            => $samsaraVehicle->meta['engine_hours'] ?? null,
+                'odometer_meters'         => $samsaraVehicle->meta['odometer_meters'] ?? null,
             ]),
         ];
 
@@ -302,10 +304,10 @@ class SamsaraSyncService
     /**
      * Preview what would be synced without making changes.
      */
-    public function previewSync(SamsaraCredential $credential, bool $includeInactive = false): array
+    public function previewSync(SamsaraCredential $credential): array
     {
         try {
-            $samsaraVehicles = $this->apiService->getVehicles($credential, $includeInactive);
+            $samsaraVehicles = $this->apiService->getVehicles($credential);
 
             $newVehicles      = 0;
             $existingVehicles = 0;
@@ -455,7 +457,7 @@ class SamsaraSyncService
                     ->where('sync_status', 'active')
                     ->count();
                 $linkedVehiclesCount = SamsaraVehicle::where('company_uuid', $credential->company_uuid)
-                    ->where('is_linked', true)
+                    ->whereNotNull('vehicle_uuid')
                     ->count();
 
                 $status[] = [

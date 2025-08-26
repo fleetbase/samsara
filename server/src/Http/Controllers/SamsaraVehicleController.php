@@ -5,10 +5,13 @@ namespace Fleetbase\Samsara\Http\Controllers;
 use Fleetbase\FleetOps\Models\Vehicle;
 use Fleetbase\Http\Controllers\Controller;
 use Fleetbase\Http\Requests\FleetbaseRequest;
+use Fleetbase\Http\Resources\FleetbaseResource;
+use Fleetbase\Http\Resources\FleetbaseResourceCollection;
 use Fleetbase\Samsara\Models\SamsaraCredential;
 use Fleetbase\Samsara\Models\SamsaraVehicle;
 use Fleetbase\Samsara\Services\SamsaraApiService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 /**
  * Class SamsaraVehicleController.
@@ -22,12 +25,13 @@ class SamsaraVehicleController extends Controller
     public function __construct(SamsaraApiService $samsaraApi)
     {
         $this->samsaraApi = $samsaraApi;
+        FleetbaseResource::wrap('samsaraVehicle');
     }
 
     /**
      * Display a listing of Samsara vehicles.
      */
-    public function index(FleetbaseRequest $request): JsonResponse
+    public function index(FleetbaseRequest $request): FleetbaseResourceCollection|AnonymousResourceCollection
     {
         $vehicles = SamsaraVehicle::where('company_uuid', session('company'))
             ->with(['vehicle'])
@@ -38,21 +42,23 @@ class SamsaraVehicleController extends Controller
                 $search = $request->input('search');
 
                 return $query->where(function ($q) use ($search) {
-                    $q->where('samsara_vehicle_name', 'like', "%{$search}%")
-                      ->orWhere('samsara_vehicle_vin', 'like', "%{$search}%")
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('vin', 'like', "%{$search}%")
                       ->orWhere('samsara_vehicle_id', 'like', "%{$search}%");
                 });
             })
             ->orderBy('created_at', 'desc')
             ->paginate();
 
-        return response()->json($vehicles);
+        FleetbaseResource::wrap('samsaraVehicles');
+
+        return FleetbaseResource::collection($vehicles);
     }
 
     /**
      * Store a newly created Samsara vehicle sync.
      */
-    public function store(FleetbaseRequest $request): JsonResponse
+    public function store(FleetbaseRequest $request): FleetbaseResource
     {
         $request->validate([
             'samsara_vehicle_id' => 'required|string',
@@ -103,29 +109,26 @@ class SamsaraVehicleController extends Controller
             'last_sync_at'           => now(),
         ]);
 
-        return response()->json([
-            'vehicle' => $samsaraVehicle->load('vehicle'),
-            'message' => 'Samsara vehicle sync created successfully',
-        ], 201);
+        return new FleetbaseResource($samsaraVehicle);
     }
 
     /**
      * Display the specified Samsara vehicle.
      */
-    public function show(string $id): JsonResponse
+    public function show(string $id): FleetbaseResource
     {
         $vehicle = SamsaraVehicle::where('company_uuid', session('company'))
             ->where('public_id', $id)
             ->with(['vehicle'])
             ->firstOrFail();
 
-        return response()->json($vehicle);
+        return new FleetbaseResource($vehicle);
     }
 
     /**
      * Update the specified Samsara vehicle.
      */
-    public function update(FleetbaseRequest $request, string $id): JsonResponse
+    public function update(FleetbaseRequest $request, string $id): FleetbaseResource
     {
         $samsaraVehicle = SamsaraVehicle::where('company_uuid', session('company'))
             ->where('public_id', $id)
@@ -141,16 +144,13 @@ class SamsaraVehicleController extends Controller
             'sync_status',
         ]));
 
-        return response()->json([
-            'vehicle' => $samsaraVehicle->load('vehicle'),
-            'message' => 'Samsara vehicle updated successfully',
-        ]);
+        return new FleetbaseResource($samsaraVehicle);
     }
 
     /**
      * Remove the specified Samsara vehicle.
      */
-    public function destroy(string $id): JsonResponse
+    public function destroy(string $id): FleetbaseResource
     {
         $vehicle = SamsaraVehicle::where('company_uuid', session('company'))
             ->where('public_id', $id)
@@ -158,9 +158,7 @@ class SamsaraVehicleController extends Controller
 
         $vehicle->delete();
 
-        return response()->json([
-            'message' => 'Samsara vehicle sync deleted successfully',
-        ]);
+        return new FleetbaseResource($vehicle);
     }
 
     /**

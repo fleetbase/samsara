@@ -2,3 +2,22 @@
     width: 12px;
     max-width: 12px;
 }
+
+#fleetops-virtual-wrapper {
+    max-width: 58rem;
+}
+
+#fleetops-virtual-wrapper body[data-theme='dark'] .next-table-wrapper table tbody tr td span a,
+#fleetops-virtual-wrapper body[data-theme='dark'] .next-table-wrapper table tbody tr td a,
+#fleetops-virtual-wrapper .next-table-wrapper table tbody tr td span a,
+#fleetops-virtual-wrapper .next-table-wrapper table tbody tr td a {
+    color: rgba(59, 130, 246, 100%);
+    text-decoration: underline;
+}
+
+#fleetops-virtual-wrapper body[data-theme='dark'] .next-table-wrapper table tbody tr td span a:hover,
+#fleetops-virtual-wrapper body[data-theme='dark'] .next-table-wrapper table tbody tr td a:hover,
+#fleetops-virtual-wrapper .next-table-wrapper table tbody tr td span a:hover,
+#fleetops-virtual-wrapper .next-table-wrapper table tbody tr td a:hover {
+    color: rgba(96, 165, 260, 100%);
+}

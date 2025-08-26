@@ -66,6 +66,16 @@ class SamsaraApiService
     }
 
     /**
+     * Alias for get all vehicles from Samsara API.
+     *
+     * @throws \Exception
+     */
+    public function getVehicles(SamsaraCredential $credential, array $options = []): array
+    {
+        return $this->getAllVehicles($credential, $options);
+    }
+
+    /**
      * Get a specific vehicle from Samsara API.
      *
      * @throws \Exception

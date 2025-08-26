@@ -49,11 +49,16 @@ class SamsaraVehicle extends Model
         'vin',
         'serial',
         'license_plate',
+        'year',
+        'model',
+        'make',
+        'notes',
+        'regulation_mode',
         'vehicle_type',
         'sync_status',
-        'is_linked',
+        'data',
+        'meta',
         'last_location',
-        'metadata',
         'last_sync_at',
     ];
 
@@ -63,10 +68,10 @@ class SamsaraVehicle extends Model
      * @var array
      */
     protected $casts = [
-        'last_location' => 'json',
-        'metadata'      => 'json',
-        'last_sync_at'  => 'datetime',
-        'is_linked'     => 'boolean',
+        'data'               => 'json',
+        'meta'               => 'json',
+        'last_location'      => 'json',
+        'last_sync_at'       => 'datetime',
     ];
 
     /**
@@ -82,6 +87,13 @@ class SamsaraVehicle extends Model
      * @var array
      */
     protected $hidden = [];
+
+    /**
+     * Relationships that will always be loaded with model.
+     *
+     * @var array
+     */
+    protected $with = ['vehicle'];
 
     /**
      * Get the associated FleetOps vehicle.
@@ -152,7 +164,7 @@ class SamsaraVehicle extends Model
      */
     public function isLinkedToFleetOps()
     {
-        return $this->is_linked && !empty($this->vehicle_uuid);
+        return !empty($this->vehicle_uuid);
     }
 
     /**
@@ -187,14 +199,14 @@ class SamsaraVehicle extends Model
      */
     public function markSyncFailed($error = null)
     {
-        $metadata = $this->metadata ?? [];
+        $meta = $this->meta ?? [];
         if ($error) {
-            $metadata['last_sync_error'] = $error;
+            $meta['last_sync_error'] = $error;
         }
 
         $this->update([
             'sync_status' => 'failed',
-            'metadata'    => $metadata,
+            'meta'        => $meta,
         ]);
     }
 
@@ -210,16 +222,18 @@ class SamsaraVehicle extends Model
             'vin'           => $samsaraData['vin'] ?? $this->vin,
             'serial'        => $samsaraData['serial'] ?? $this->serial,
             'license_plate' => $samsaraData['licensePlate'] ?? $this->license_plate,
+            'make'          => $samsaraData['make'] ?? $this->make,
+            'model'         => $samsaraData['model'] ?? $this->model,
+            'year'          => $samsaraData['year'] ?? $this->year,
+            'license_plate' => $samsaraData['licensePlate'] ?? $this->license_plate,
             'vehicle_type'  => $this->mapVehicleType($samsaraData['vehicleType'] ?? 'unknown'),
-            'metadata'      => array_merge($this->metadata ?? [], [
-                'make'              => $samsaraData['make'] ?? null,
-                'model'             => $samsaraData['model'] ?? null,
-                'year'              => $samsaraData['year'] ?? null,
+            'meta'          => array_merge($this->meta ?? [], [
                 'fuel_type'         => $samsaraData['fuelType'] ?? null,
                 'engine_hours'      => $samsaraData['engineHours'] ?? null,
                 'odometer_meters'   => $samsaraData['odometerMeters'] ?? null,
                 'last_samsara_data' => $samsaraData,
             ]),
+            'data'         => $samsaraData,
             'last_sync_at' => now(),
         ]);
     }
@@ -233,7 +247,6 @@ class SamsaraVehicle extends Model
     {
         $this->update([
             'vehicle_uuid' => $fleetOpsVehicleUuid,
-            'is_linked'    => true,
         ]);
     }
 
@@ -246,7 +259,6 @@ class SamsaraVehicle extends Model
     {
         $this->update([
             'vehicle_uuid' => null,
-            'is_linked'    => false,
         ]);
     }
 
@@ -304,7 +316,7 @@ class SamsaraVehicle extends Model
      */
     public function scopeLinked($query)
     {
-        return $query->where('is_linked', true)->whereNotNull('vehicle_uuid');
+        return $query->whereNotNull('vehicle_uuid');
     }
 
     /**
@@ -316,6 +328,6 @@ class SamsaraVehicle extends Model
      */
     public function scopeUnlinked($query)
     {
-        return $query->where('is_linked', false)->orWhereNull('vehicle_uuid');
+        return $query->orWhereNull('vehicle_uuid');
     }
 }

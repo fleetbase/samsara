@@ -20,7 +20,7 @@
                             <Toggle @label="Sandbox" @value={{apiCredential.is_sandbox}} @onToggle={{fn (mut apiCredential.is_sandbox)}} @disabled={{this.saveApiCredentials.isRunning}} />
                         </InputGroup>
                         <Button @text="Test Connection" @icon="plug" @disabled={{this.saveApiCredentials.isRunning}} />
-                        <Button @text="Sync" @icon="sync" @disabled={{this.saveApiCredentials.isRunning}} />
+                        {{!-- <Button @text="Sync" @icon="sync" @disabled={{this.saveApiCredentials.isRunning}} /> --}}
                         <Button @text="Delete" @type="danger" @icon="trash" @disabled={{this.deleteApiCredential.isRunning}} @onClick={{perform this.deleteApiCredential apiCredential}} />
                     </div>
                 </div>
@@ -38,5 +38,50 @@
             {{/if}}
         </div>
     </ContentPanel>
-    <ContentPanel @title="Synced Vehicles" @open={{true}} @pad={{true}} @panelBodyClass="bg-white dark:bg-gray-800" />
+    <ContentPanel @title="Synced Vehicles" @open={{true}} @pad={{true}} @panelBodyClass="bg-white dark:bg-gray-800" @panelBodyWrapperClass="p-0i">
+        <div class="flex flex-row px-4 py-2 space-x-4">
+            <Input @value={{this.vehicleSearchQuery}} placeholder="Search vehicles by keyword" class="form-input" disabled={{this.loadSamsaraVehicles.isRunning}} />
+            <Button @text="Search" @icon="magnifying-glass" @onClick={{this.searchVehicles}} @isLoading={{this.loadSamsaraVehicles.isRunning}} />
+        </div>
+        <div class="next-table-wrapper h-auto">
+            <table class="table table-fixed w-full h-auto">
+                <thead>
+                    <tr>
+                        <th class="text-left">Name</th>
+                        <th class="text-left">VIN</th>
+                        <th class="text-left">Serial</th>
+                        <th class="text-left">Vehicle</th>
+                        <th class="text-left">FleetOps ID</th>
+                        <th class="text-left">Sync Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#each this.vehicles as |samsaraVehicle|}}
+                        <tr>
+                            <td>{{n-a samsaraVehicle.name "-"}}</td>
+                            <td>{{n-a samsaraVehicle.vin "-"}}</td>
+                            <td>{{n-a samsaraVehicle.serial "-"}}</td>
+                            <td>{{n-a (trim (concat samsaraVehicle.year " " samsaraVehicle.make " " samsaraVehicle.model)) "-"}}</td>
+                            <td>
+                                <a
+                                    href="#"
+                                    {{on "click" (fn this.viewFleetOpsVehicle samsaraVehicle.vehicle)}}
+                                    class="text-blue-500 hover:text-blue-400"
+                                >{{samsaraVehicle.vehicle.public_id}}</a>
+                            </td>
+                            <td>{{format-date samsaraVehicle.last_sync_at}}</td>
+                        </tr>
+                    {{/each}}
+                </tbody>
+            </table>
+        </div>
+        <Pagination
+            @meta={{this.vehiclesMeta}}
+            @currentPage={{this.vehiclesMeta.current_page}}
+            @onPageChange={{this.changeVehiclesPage}}
+            @isLoading={{this.loadSamsaraVehicles.isRunning}}
+            class="px-4"
+        />
+    </ContentPanel>
+    <Spacer @height="200px" />
 </div>

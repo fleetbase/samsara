@@ -1,4 +1,4 @@
-import Model, { attr, hasMany } from '@ember-data/model';
+import Model, { attr } from '@ember-data/model';
 import { computed } from '@ember/object';
 
 export default class SamsaraCredentialModel extends Model {
@@ -14,8 +14,6 @@ export default class SamsaraCredentialModel extends Model {
     @attr('raw') meta;
     @attr('date') created_at;
     @attr('date') updated_at;
-
-    @hasMany('samsara-vehicle') vehicles;
 
     @computed('is_active')
     get statusText() {

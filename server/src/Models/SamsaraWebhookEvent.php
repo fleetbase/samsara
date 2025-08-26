@@ -41,7 +41,7 @@ class SamsaraWebhookEvent extends Model
         'uuid',
         'public_id',
         'company_uuid',
-        'samsara_credential_uuid',
+        'credential_uuid',
         'samsara_vehicle_uuid',
         'event_id',
         'event_type',
@@ -84,7 +84,7 @@ class SamsaraWebhookEvent extends Model
      */
     public function credential()
     {
-        return $this->belongsTo(SamsaraCredential::class, 'samsara_credential_uuid', 'uuid');
+        return $this->belongsTo(SamsaraCredential::class, 'credential_uuid', 'uuid');
     }
 
     /**
@@ -221,7 +221,7 @@ class SamsaraWebhookEvent extends Model
     {
         return static::create([
             'company_uuid'            => $companyUuid,
-            'samsara_credential_uuid' => $credentialUuid,
+            'credential_uuid'         => $credentialUuid,
             'event_id'                => $payload['eventId'] ?? null,
             'event_type'              => $payload['eventType'] ?? 'unknown',
             'event_data'              => $payload,

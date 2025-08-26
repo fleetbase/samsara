@@ -91,13 +91,15 @@ class SamsaraCredentialController extends Controller
     /**
      * Update the specified Samsara credential.
      */
-    public function update(FleetbaseRequest $request): FleetbaseResource
+    public function update(FleetbaseRequest $request, string $id): FleetbaseResource
     {
-        $id         = $request->input('samsaraCredential.uuid');
-
         $credential = SamsaraCredential::where('company_uuid', session('company'))
             ->where('uuid', $id)
-            ->firstOrFail();
+            ->first();
+
+        if (!$credential) {
+            return response()->error('Samsara credential not found.');
+        }
 
         $validator = Validator::make($request->input('samsaraCredential', []), [
             'name'           => 'sometimes|required|string|max:255',
@@ -126,7 +128,11 @@ class SamsaraCredentialController extends Controller
     {
         $credential = SamsaraCredential::where('company_uuid', session('company'))
             ->where('uuid', $id)
-            ->firstOrFail();
+            ->first();
+
+        if (!$credential) {
+            return response()->error('Samsara credential not found.');
+        }
 
         $credential->delete();
 
@@ -140,7 +146,11 @@ class SamsaraCredentialController extends Controller
     {
         $credential = SamsaraCredential::where('company_uuid', session('company'))
             ->where('uuid', $id)
-            ->firstOrFail();
+            ->first();
+
+        if (!$credential) {
+            return response()->error('Samsara credential not found.');
+        }
 
         $result = $credential->testConnection();
 
@@ -171,16 +181,14 @@ class SamsaraCredentialController extends Controller
     /**
      * Get the active credential for the current company.
      */
-    public function getActive(): JsonResponse
+    public function getActive(): FleetbaseResource
     {
         $credential = SamsaraCredential::where('company_uuid', session('company'))
             ->where('is_active', true)
             ->first();
 
         if (!$credential) {
-            return response()->json([
-                'message' => 'No active Samsara credential found',
-            ], 404);
+            return response()->error('Samsara credential not found.');
         }
 
         return new FleetbaseResource($credential);
@@ -193,7 +201,11 @@ class SamsaraCredentialController extends Controller
     {
         $credential = SamsaraCredential::where('company_uuid', session('company'))
             ->where('uuid', $id)
-            ->firstOrFail();
+            ->first();
+
+        if (!$credential) {
+            return response()->error('Samsara credential not found.');
+        }
 
         // Deactivate all other credentials for this company
         SamsaraCredential::where('company_uuid', session('company'))
@@ -213,7 +225,11 @@ class SamsaraCredentialController extends Controller
     {
         $credential = SamsaraCredential::where('company_uuid', session('company'))
             ->where('uuid', $id)
-            ->firstOrFail();
+            ->first();
+
+        if (!$credential) {
+            return response()->error('Samsara credential not found.');
+        }
 
         // Get related statistics
         $stats = [

@@ -17,7 +17,7 @@ return new class extends Migration
             $table->id();
             $table->string('uuid')->unique();
             $table->string('public_id')->unique();
-            $table->string('company_uuid')->index();
+            $table->foreignUuid('company_uuid')->nullable()->references('uuid')->on('companies')->onDelete('CASCADE');
             $table->string('name');
             $table->text('api_token'); // Encrypted
             $table->string('api_base_url')->default('https://api.samsara.com');

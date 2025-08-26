@@ -17,16 +17,25 @@ return new class extends Migration
             $table->id();
             $table->string('uuid')->unique();
             $table->string('public_id')->unique();
-            $table->string('company_uuid')->index();
-            $table->string('vehicle_uuid')->nullable()->index(); // FleetOps vehicle UUID
+            $table->foreignUuid('company_uuid')->nullable()->references('uuid')->on('companies')->onDelete('CASCADE');
+            $table->foreignUuid('credential_uuid')->nullable()->references('uuid')->on('samsara_credentials')->onDelete('set null');
+            $table->foreignUuid('vehicle_uuid')->nullable()->references('uuid')->on('vehicles')->onDelete('CASCADE');
             $table->string('samsara_vehicle_id')->index(); // Samsara vehicle ID
-            $table->string('samsara_vehicle_name')->nullable();
-            $table->string('samsara_vehicle_vin')->nullable();
-            $table->string('samsara_vehicle_serial')->nullable();
-            $table->json('samsara_vehicle_data')->nullable(); // Full Samsara vehicle data
-            $table->timestamp('last_sync_at')->nullable();
+            $table->string('name')->nullable();
+            $table->string('vin')->nullable();
+            $table->string('serial')->nullable();
+            $table->string('license_plate')->nullable();
+            $table->string('year')->nullable();
+            $table->string('model')->nullable();
+            $table->string('make')->nullable();
+            $table->string('notes')->nullable();
+            $table->string('regulation_mode')->nullable();
+            $table->string('vehicle_type')->nullable();
             $table->enum('sync_status', ['pending', 'syncing', 'active', 'failed', 'disabled'])->default('pending');
+            $table->json('data')->nullable(); 
+            $table->json('last_location')->nullable(); 
             $table->json('meta')->nullable();
+            $table->timestamp('last_sync_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
 
