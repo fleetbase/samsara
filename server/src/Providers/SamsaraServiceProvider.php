@@ -85,6 +85,9 @@ class SamsaraServiceProvider extends CoreServiceProvider
     public function boot()
     {
         $this->registerCommands();
+        $this->scheduleCommands(function ($schedule) {
+            $schedule->command('samsara:sync --force')->twiceDaily(1, 13);
+        });
         $this->registerObservers();
         $this->registerPolicies();
         $this->registerExpansionsFrom(__DIR__ . '/../Expansions');
