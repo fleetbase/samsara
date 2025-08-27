@@ -196,17 +196,19 @@ class SamsaraVehicleController extends Controller
     public function sync(string $id): JsonResponse
     {
         $samsaraVehicle = SamsaraVehicle::where('company_uuid', session('company'))
-            ->where('public_id', $id)
-            ->firstOrFail();
+            ->where('uuid', $id)
+            ->first();
+
+        if (!$samsaraVehicle) {
+            return response()->error('Samsara vehicle not found.');
+        }
 
         $credential = SamsaraCredential::where('company_uuid', session('company'))
-            ->where('is_active', true)
+            ->where('uuid', $samsaraVehicle->credential_uuid)
             ->first();
 
         if (!$credential) {
-            return response()->json([
-                'message' => 'No active Samsara credential found',
-            ], 400);
+            return response()->error('Samsara credential for vehicle not found.');
         }
 
         try {
@@ -217,15 +219,13 @@ class SamsaraVehicleController extends Controller
             $samsaraVehicle->markSyncComplete();
 
             return response()->json([
-                'vehicle' => $samsaraVehicle->load('vehicle'),
-                'message' => 'Vehicle synced successfully',
+                'samsaraVehicle' => $samsaraVehicle->load('vehicle'),
+                'message'        => 'Vehicle synced successfully',
             ]);
         } catch (\Exception $e) {
             $samsaraVehicle->markSyncFailed($e->getMessage());
 
-            return response()->json([
-                'message' => 'Vehicle sync failed: ' . $e->getMessage(),
-            ], 500);
+            return response()->error('Vehicle sync failed: ' . $e->getMessage());
         }
     }
 

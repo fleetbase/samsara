@@ -113,10 +113,10 @@ class SamsaraSyncCommand extends Command
             $this->info("🔑 Using credential: {$credential->name}");
 
             if ($dryRun) {
-                $result = $this->syncService->previewSync($credential, $includeInactive);
+                $result = $this->syncService->previewSync($credential);
                 $this->displayDryRunResults($result);
             } else {
-                $result = $this->syncService->syncVehicles($credential, $force, $includeInactive);
+                $result = $this->syncService->syncVehicles($credential, $force);
                 $this->displaySyncResults($result);
 
                 $totalSynced += $result['synced'] ?? 0;
@@ -165,9 +165,9 @@ class SamsaraSyncCommand extends Command
 
                 foreach ($credentials as $credential) {
                     if ($dryRun) {
-                        $result = $this->syncService->previewSync($credential, $includeInactive);
+                        $result = $this->syncService->previewSync($credential);
                     } else {
-                        $result = $this->syncService->syncVehicles($credential, $force, $includeInactive);
+                        $result = $this->syncService->syncVehicles($credential, $force);
                         $totalSynced += $result['synced'] ?? 0;
                         $totalErrors += $result['errors'] ?? 0;
                     }

@@ -37,6 +37,7 @@ Route::prefix(config('samsara.api.routing.prefix', 'samsara'))->namespace('Fleet
                             $router->put('/{id}', 'SamsaraCredentialController@update');
                             $router->delete('/{id}', 'SamsaraCredentialController@destroy');
                             $router->post('/{id}/test', 'SamsaraCredentialController@testConnection');
+                            $router->post('/{id}/sync', 'SamsaraCredentialController@sync');
                             $router->post('/{id}/activate', 'SamsaraCredentialController@activate');
                             $router->get('/{id}/stats', 'SamsaraCredentialController@getSyncStats');
                         });
@@ -117,7 +118,6 @@ Route::prefix(config('samsara.api.routing.prefix', 'samsara'))->namespace('Fleet
         |
         | Public routes for receiving webhooks from Samsara (no authentication).
         */
-        $router->post('webhook/{companyId}', 'SamsaraWebhookController@handle')
-            ->name('samsara.webhook');
+        $router->post('webhook/{companyId}', 'SamsaraWebhookController@handle')->name('samsara.webhook');
     }
 );

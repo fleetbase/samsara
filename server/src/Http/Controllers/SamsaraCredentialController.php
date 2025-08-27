@@ -7,6 +7,7 @@ use Fleetbase\Http\Requests\FleetbaseRequest;
 use Fleetbase\Http\Resources\FleetbaseResource;
 use Fleetbase\Http\Resources\FleetbaseResourceCollection;
 use Fleetbase\Samsara\Models\SamsaraCredential;
+use Fleetbase\Samsara\Services\SamsaraSyncService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Validator;
@@ -18,11 +19,14 @@ use Illuminate\Support\Facades\Validator;
  */
 class SamsaraCredentialController extends Controller
 {
+    protected $syncService;
+
     /**
      * Constructor.
      */
-    public function __construct()
+    public function __construct(SamsaraSyncService $syncService)
     {
+        $this->syncService = $syncService;
         // $this->authorizeResource(SamsaraCredential::class, 'credential');
         FleetbaseResource::wrap('samsaraCredential');
     }
@@ -153,6 +157,24 @@ class SamsaraCredentialController extends Controller
         }
 
         $result = $credential->testConnection();
+
+        return response()->json($result);
+    }
+
+    /**
+     * Run a sync using the specified credential.
+     */
+    public function sync(string $id): JsonResponse
+    {
+        $credential = SamsaraCredential::where('company_uuid', session('company'))
+            ->where('uuid', $id)
+            ->first();
+
+        if (!$credential) {
+            return response()->error('Samsara credential not found.');
+        }
+
+        $result = $this->syncService->syncVehicles($credential, true);
 
         return response()->json($result);
     }

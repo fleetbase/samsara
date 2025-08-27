@@ -11,10 +11,17 @@ export default class SamsaraSettingsComponent extends Component {
     @service fetch;
     @service notifications;
     @service hostRouter;
+    @service currentUser;
     @tracked apiCredentials = [];
     @tracked vehicles = [];
     @tracked vehiclesMeta = {};
     @tracked vehicleSearchQuery = '';
+    @tracked syncResults = {};
+    @tracked currentVehicleSyncing;
+
+    get webhookUrl() {
+        return this.fetch.host + '/samsara/webhook/' + this.currentUser.companyId;
+    }
 
     constructor() {
         super(...arguments);
@@ -76,10 +83,27 @@ export default class SamsaraSettingsComponent extends Component {
         try {
             const result = yield this.fetch.post(`credentials/${samsaraCredential.id}/sync`, {}, { namespace: 'samsara/int/v1' });
             this.notifications.success('Samsara sync started successfully.');
-            console.log('[result]', result);
+            this.syncResults = {
+                ...this.syncResults,
+                [samsaraCredential.id]: result,
+            };
         } catch (err) {
             this.notifications.serverError(err);
             debug('[Samsara] Failed to run sync for Samsara API Credential: ' + err.message);
+        }
+    }
+
+    @task *syncVehicle(samsaraVehicle) {
+        try {
+            this.currentVehicleSyncing = samsaraVehicle.id;
+
+            const result = yield this.fetch.post(`vehicles/${samsaraVehicle.id}/sync`, {}, { namespace: 'samsara/int/v1' });
+            this.notifications.success(`Vehicle (${result.samsaraVehicle.name}) synced successfully.`);
+        } catch (err) {
+            this.notifications.serverError(err);
+            debug('[Samsara] Failed to run sync for Samsara API Credential: ' + err.message);
+        } finally {
+            this.currentVehicleSyncing = null;
         }
     }
 

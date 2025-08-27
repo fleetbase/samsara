@@ -19,10 +19,27 @@
                             {{! template-lint-disable require-input-label }}
                             <Toggle @label="Sandbox" @value={{apiCredential.is_sandbox}} @onToggle={{fn (mut apiCredential.is_sandbox)}} @disabled={{this.saveApiCredentials.isRunning}} />
                         </InputGroup>
-                        <Button @text="Test Connection" @icon="plug" @disabled={{this.saveApiCredentials.isRunning}} />
-                        {{!-- <Button @text="Sync" @icon="sync" @disabled={{this.saveApiCredentials.isRunning}} /> --}}
+                        <Button @text="Test Connection" @icon="plug" @onClick={{perform this.testCredentialConnection apiCredential}} @disabled={{this.saveApiCredentials.isRunning}} @isLoading={{this.testCredentialConnection.isRunning}} />
+                        <Button @text="Sync" @icon="sync" @onClick={{perform this.runSync apiCredential}} @disabled={{this.saveApiCredentials.isRunning}} @isLoading={{this.runSync.isRunning}} />
                         <Button @text="Delete" @type="danger" @icon="trash" @disabled={{this.deleteApiCredential.isRunning}} @onClick={{perform this.deleteApiCredential apiCredential}} />
                     </div>
+                    {{#if (get this.syncResults apiCredential.id)}}
+                        {{#let (get this.syncResults apiCredential.id) as |syncResults|}}
+                            <div class="bg-white dark:bg-gray-900 shadow-sm p-2 rounded-md font-mono text-xs border border-gray-200 dark:border-gray-700 text-green-500">
+                                <div class="font-bold font-mono">Sync Results</div>
+                                <hr class="border-0 bg-green-500 h-px my-1" />
+                                <div class="font-mono">Duration: {{format-duration syncResults.duration}}</div>
+                                <div>Errors: {{syncResults.errors}}</div>
+                                {{#each syncResults.error_details as |error|}}
+                                    <div class="text-red-500 ml-2 font-mono">{{error}}</div>
+                                {{/each}}
+                                <div class="font-mono">Synced: {{syncResults.synced}}</div>
+                                <div class="font-mono">Updated: {{syncResults.updated}}</div>
+                                <div class="font-mono">Created: {{syncResults.created}}</div>
+                                <div class="font-mono font-semibold">Total: {{syncResults.total}}</div>
+                            </div>
+                        {{/let}}
+                    {{/if}}
                 </div>
             {{else}}
                 <div class="h-26 w-full flex flex-col items-center justify-center">
@@ -36,6 +53,14 @@
                     <Button @type="primary" @text="Save" @icon="save" @onClick={{perform this.saveApiCredentials}} @isLoading={{this.saveApiCredentials.isRunning}} />
                 </div>
             {{/if}}
+        </div>
+    </ContentPanel>
+    <ContentPanel @title="Samsara Webhook URL" @open={{true}} @pad={{true}} @panelBodyClass="bg-white dark:bg-gray-800">
+        <div class="py-2">
+            <ClickToCopy @value={{this.webhookUrl}} class="mb-2 px-3 py-2 rounded-md bg-gray-200 dark:bg-gray-900 text-center flex items-center text-sm font-mono font-semibold text-blue-500">
+                {{this.webhookUrl}}
+            </ClickToCopy>
+            <p class="text-sm">Configure this URL in your Samsara dashboard, make sure to setup webhook authentication if needed.</p>
         </div>
     </ContentPanel>
     <ContentPanel @title="Synced Vehicles" @open={{true}} @pad={{true}} @panelBodyClass="bg-white dark:bg-gray-800" @panelBodyWrapperClass="p-0i">
@@ -53,6 +78,7 @@
                         <th class="text-left">Vehicle</th>
                         <th class="text-left">FleetOps ID</th>
                         <th class="text-left">Sync Date</th>
+                        <th class="text-left" {{set-width "70px"}}></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -70,6 +96,14 @@
                                 >{{samsaraVehicle.vehicle.public_id}}</a>
                             </td>
                             <td>{{format-date samsaraVehicle.last_sync_at}}</td>
+                            <td>
+                                <a href="#" class="text-blue-500 hover:text-blue-400 flex flex-row items-center" {{on "click" (perform this.syncVehicle samsaraVehicle)}} disabled={{this.syncVehicle.isRunning}}>
+                                    {{#if (and (eq this.currentVehicleSyncing samsaraVehicle.id) this.syncVehicle.isRunning)}}
+                                        <Spinner class="text-blue-500 mr-1" />
+                                    {{/if}}
+                                    <span>Sync</span>
+                                </a>
+                            </td>
                         </tr>
                     {{/each}}
                 </tbody>
