@@ -14,13 +14,29 @@
                         {{! template-lint-disable require-input-label }}
                         <Input @value={{apiCredential.api_token}} placeholder="Samsara API Token" class="form-input form-input-sm w-full" disabled={{this.saveApiCredentials.isRunning}} />
                     </InputGroup>
+                    <InputGroup @name="Webhook Secret" @helpText="Your Samsara Webhook Secret.">
+                        {{! template-lint-disable require-input-label }}
+                        <Input @value={{apiCredential.webhook_secret}} placeholder="Samsara Webhook Secret" class="form-input form-input-sm w-full" disabled={{this.saveApiCredentials.isRunning}} />
+                    </InputGroup>
                     <div class="flex flex-row items-center space-x-4">
                         <InputGroup @name="Sandbox">
                             {{! template-lint-disable require-input-label }}
                             <Toggle @label="Sandbox" @value={{apiCredential.is_sandbox}} @onToggle={{fn (mut apiCredential.is_sandbox)}} @disabled={{this.saveApiCredentials.isRunning}} />
                         </InputGroup>
-                        <Button @text="Test Connection" @icon="plug" @onClick={{perform this.testCredentialConnection apiCredential}} @disabled={{this.saveApiCredentials.isRunning}} @isLoading={{this.testCredentialConnection.isRunning}} />
-                        <Button @text="Sync" @icon="sync" @onClick={{perform this.runSync apiCredential}} @disabled={{this.saveApiCredentials.isRunning}} @isLoading={{this.runSync.isRunning}} />
+                        <Button
+                            @text="Test Connection"
+                            @icon="plug"
+                            @onClick={{perform this.testCredentialConnection apiCredential}}
+                            @disabled={{this.saveApiCredentials.isRunning}}
+                            @isLoading={{this.testCredentialConnection.isRunning}}
+                        />
+                        <Button
+                            @text="Sync"
+                            @icon="sync"
+                            @onClick={{perform this.runSync apiCredential}}
+                            @disabled={{this.saveApiCredentials.isRunning}}
+                            @isLoading={{this.runSync.isRunning}}
+                        />
                         <Button @text="Delete" @type="danger" @icon="trash" @disabled={{this.deleteApiCredential.isRunning}} @onClick={{perform this.deleteApiCredential apiCredential}} />
                     </div>
                     {{#if (get this.syncResults apiCredential.id)}}
@@ -57,7 +73,10 @@
     </ContentPanel>
     <ContentPanel @title="Samsara Webhook URL" @open={{true}} @pad={{true}} @panelBodyClass="bg-white dark:bg-gray-800">
         <div class="py-2">
-            <ClickToCopy @value={{this.webhookUrl}} class="mb-2 px-3 py-2 rounded-md bg-gray-200 dark:bg-gray-900 text-center flex items-center text-sm font-mono font-semibold text-blue-500">
+            <ClickToCopy
+                @value={{this.webhookUrl}}
+                class="mb-2 px-3 py-2 rounded-md bg-gray-200 dark:bg-gray-900 text-center flex items-center text-sm font-mono font-semibold text-blue-500"
+            >
                 {{this.webhookUrl}}
             </ClickToCopy>
             <p class="text-sm">Configure this URL in your Samsara dashboard, make sure to setup webhook authentication if needed.</p>
@@ -97,9 +116,14 @@
                             </td>
                             <td>{{format-date samsaraVehicle.last_sync_at}}</td>
                             <td>
-                                <a href="#" class="text-blue-500 hover:text-blue-400 flex flex-row items-center" {{on "click" (perform this.syncVehicle samsaraVehicle)}} disabled={{this.syncVehicle.isRunning}}>
+                                <a
+                                    href="#"
+                                    class="text-blue-500 hover:text-blue-400 flex flex-row items-center"
+                                    {{on "click" (perform this.syncVehicle samsaraVehicle)}}
+                                    disabled={{this.syncVehicle.isRunning}}
+                                >
                                     {{#if (and (eq this.currentVehicleSyncing samsaraVehicle.id) this.syncVehicle.isRunning)}}
-                                        <Spinner class="text-blue-500 mr-1" />
+                                        <Spinner @wrapperClass="text-blue-500 mr-2" />
                                     {{/if}}
                                     <span>Sync</span>
                                 </a>
