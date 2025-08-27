@@ -4,20 +4,20 @@ namespace Fleetbase\Samsara\Models;
 
 use Fleetbase\FleetOps\Models\Vehicle;
 use Fleetbase\Models\Model;
-use Fleetbase\Traits\HasUuid;
 use Fleetbase\Traits\HasPublicId;
+use Fleetbase\Traits\HasUuid;
 use Fleetbase\Traits\TracksApiCredential;
 
 /**
- * Class SamsaraVehicle
- * 
+ * Class SamsaraVehicle.
+ *
  * Model for managing Samsara vehicle data and sync with FleetOps vehicles
- * 
- * @package Fleetbase\Samsara\Models
  */
 class SamsaraVehicle extends Model
 {
-    use HasUuid, HasPublicId, TracksApiCredential;
+    use HasUuid;
+    use HasPublicId;
+    use TracksApiCredential;
 
     /**
      * The database table used by the model.
@@ -27,7 +27,7 @@ class SamsaraVehicle extends Model
     protected $table = 'samsara_vehicles';
 
     /**
-     * The type of public Id to generate
+     * The type of public Id to generate.
      *
      * @var string
      */
@@ -49,11 +49,16 @@ class SamsaraVehicle extends Model
         'vin',
         'serial',
         'license_plate',
+        'year',
+        'model',
+        'make',
+        'notes',
+        'regulation_mode',
         'vehicle_type',
         'sync_status',
-        'is_linked',
+        'data',
+        'meta',
         'last_location',
-        'metadata',
         'last_sync_at',
     ];
 
@@ -63,14 +68,14 @@ class SamsaraVehicle extends Model
      * @var array
      */
     protected $casts = [
-        'last_location' => 'json',
-        'metadata' => 'json',
-        'last_sync_at' => 'datetime',
-        'is_linked' => 'boolean',
+        'data'               => 'json',
+        'meta'               => 'json',
+        'last_location'      => 'json',
+        'last_sync_at'       => 'datetime',
     ];
 
     /**
-     * Dynamic attributes that are appended to model
+     * Dynamic attributes that are appended to model.
      *
      * @var array
      */
@@ -82,6 +87,13 @@ class SamsaraVehicle extends Model
      * @var array
      */
     protected $hidden = [];
+
+    /**
+     * Relationships that will always be loaded with model.
+     *
+     * @var array
+     */
+    protected $with = ['vehicle'];
 
     /**
      * Get the associated FleetOps vehicle.
@@ -100,7 +112,7 @@ class SamsaraVehicle extends Model
     }
 
     /**
-     * Get the Samsara vehicle ID
+     * Get the Samsara vehicle ID.
      *
      * @return string|null
      */
@@ -110,14 +122,14 @@ class SamsaraVehicle extends Model
     }
 
     /**
-     * Get the last known location from location data
+     * Get the last known location from location data.
      *
      * @return array|null
      */
     public function getLastLocationAttribute()
     {
         $location = $this->attributes['last_location'] ?? null;
-        
+
         if ($location && is_string($location)) {
             return json_decode($location, true);
         }
@@ -126,7 +138,7 @@ class SamsaraVehicle extends Model
     }
 
     /**
-     * Check if vehicle is currently syncing
+     * Check if vehicle is currently syncing.
      *
      * @return bool
      */
@@ -136,7 +148,7 @@ class SamsaraVehicle extends Model
     }
 
     /**
-     * Check if vehicle sync is active
+     * Check if vehicle sync is active.
      *
      * @return bool
      */
@@ -146,17 +158,17 @@ class SamsaraVehicle extends Model
     }
 
     /**
-     * Check if vehicle is linked to FleetOps
+     * Check if vehicle is linked to FleetOps.
      *
      * @return bool
      */
     public function isLinkedToFleetOps()
     {
-        return $this->is_linked && !empty($this->vehicle_uuid);
+        return !empty($this->vehicle_uuid);
     }
 
     /**
-     * Mark vehicle as syncing
+     * Mark vehicle as syncing.
      *
      * @return void
      */
@@ -166,80 +178,80 @@ class SamsaraVehicle extends Model
     }
 
     /**
-     * Mark vehicle sync as complete
+     * Mark vehicle sync as complete.
      *
      * @return void
      */
     public function markSyncComplete()
     {
         $this->update([
-            'sync_status' => 'active',
+            'sync_status'  => 'active',
             'last_sync_at' => now(),
         ]);
     }
 
     /**
-     * Mark vehicle sync as failed
+     * Mark vehicle sync as failed.
      *
      * @param string $error
+     *
      * @return void
      */
     public function markSyncFailed($error = null)
     {
-        $metadata = $this->metadata ?? [];
+        $meta = $this->meta ?? [];
         if ($error) {
-            $metadata['last_sync_error'] = $error;
+            $meta['last_sync_error'] = $error;
         }
 
         $this->update([
             'sync_status' => 'failed',
-            'metadata' => $metadata,
+            'meta'        => $meta,
         ]);
     }
 
     /**
-     * Update vehicle data from Samsara API response
+     * Update vehicle data from Samsara API response.
      *
-     * @param array $samsaraData
      * @return void
      */
     public function updateFromSamsaraData(array $samsaraData)
     {
         $this->update([
-            'name' => $samsaraData['name'] ?? $this->name,
-            'vin' => $samsaraData['vin'] ?? $this->vin,
-            'serial' => $samsaraData['serial'] ?? $this->serial,
+            'name'          => $samsaraData['name'] ?? $this->name,
+            'vin'           => $samsaraData['vin'] ?? $this->vin,
+            'serial'        => $samsaraData['serial'] ?? $this->serial,
             'license_plate' => $samsaraData['licensePlate'] ?? $this->license_plate,
-            'vehicle_type' => $this->mapVehicleType($samsaraData['vehicleType'] ?? 'unknown'),
-            'metadata' => array_merge($this->metadata ?? [], [
-                'make' => $samsaraData['make'] ?? null,
-                'model' => $samsaraData['model'] ?? null,
-                'year' => $samsaraData['year'] ?? null,
-                'fuel_type' => $samsaraData['fuelType'] ?? null,
-                'engine_hours' => $samsaraData['engineHours'] ?? null,
-                'odometer_meters' => $samsaraData['odometerMeters'] ?? null,
+            'make'          => $samsaraData['make'] ?? $this->make,
+            'model'         => $samsaraData['model'] ?? $this->model,
+            'year'          => $samsaraData['year'] ?? $this->year,
+            'license_plate' => $samsaraData['licensePlate'] ?? $this->license_plate,
+            'vehicle_type'  => $this->mapVehicleType($samsaraData['vehicleType'] ?? 'unknown'),
+            'meta'          => array_merge($this->meta ?? [], [
+                'fuel_type'         => $samsaraData['fuelType'] ?? null,
+                'engine_hours'      => $samsaraData['engineHours'] ?? null,
+                'odometer_meters'   => $samsaraData['odometerMeters'] ?? null,
                 'last_samsara_data' => $samsaraData,
             ]),
+            'data'         => $samsaraData,
             'last_sync_at' => now(),
         ]);
     }
 
     /**
-     * Link to FleetOps vehicle
+     * Link to FleetOps vehicle.
      *
-     * @param string $fleetOpsVehicleUuid
      * @return void
      */
     public function linkToFleetOpsVehicle(string $fleetOpsVehicleUuid)
     {
         $this->update([
             'vehicle_uuid' => $fleetOpsVehicleUuid,
-            'is_linked' => true,
         ]);
     }
 
     /**
-     * Unlink from FleetOps vehicle
+     * Unlink from FleetOps vehicle.
      *
      * @return void
      */
@@ -247,35 +259,32 @@ class SamsaraVehicle extends Model
     {
         $this->update([
             'vehicle_uuid' => null,
-            'is_linked' => false,
         ]);
     }
 
     /**
-     * Map Samsara vehicle type to internal type
-     *
-     * @param string $samsaraType
-     * @return string
+     * Map Samsara vehicle type to internal type.
      */
     protected function mapVehicleType(string $samsaraType): string
     {
         $typeMap = [
-            'truck' => 'truck',
-            'van' => 'van',
-            'car' => 'car',
-            'trailer' => 'trailer',
+            'truck'      => 'truck',
+            'van'        => 'van',
+            'car'        => 'car',
+            'trailer'    => 'trailer',
             'motorcycle' => 'motorcycle',
-            'bus' => 'bus',
-            'equipment' => 'equipment',
+            'bus'        => 'bus',
+            'equipment'  => 'equipment',
         ];
 
         return $typeMap[strtolower($samsaraType)] ?? 'truck';
     }
 
     /**
-     * Scope to get vehicles that need syncing
+     * Scope to get vehicles that need syncing.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
+     *
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeNeedsSync($query)
@@ -287,9 +296,10 @@ class SamsaraVehicle extends Model
     }
 
     /**
-     * Scope to get active synced vehicles
+     * Scope to get active synced vehicles.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
+     *
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeActiveSynced($query)
@@ -298,25 +308,26 @@ class SamsaraVehicle extends Model
     }
 
     /**
-     * Scope to get linked vehicles
+     * Scope to get linked vehicles.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
+     *
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeLinked($query)
     {
-        return $query->where('is_linked', true)->whereNotNull('vehicle_uuid');
+        return $query->whereNotNull('vehicle_uuid');
     }
 
     /**
-     * Scope to get unlinked vehicles
+     * Scope to get unlinked vehicles.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
+     *
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeUnlinked($query)
     {
-        return $query->where('is_linked', false)->orWhereNull('vehicle_uuid');
+        return $query->orWhereNull('vehicle_uuid');
     }
 }
-

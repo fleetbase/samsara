@@ -3,21 +3,21 @@
 namespace Fleetbase\Samsara\Models;
 
 use Fleetbase\Models\Model;
-use Fleetbase\Traits\HasUuid;
 use Fleetbase\Traits\HasPublicId;
+use Fleetbase\Traits\HasUuid;
 use Fleetbase\Traits\TracksApiCredential;
 use Illuminate\Support\Facades\Crypt;
 
 /**
- * Class SamsaraCredential
- * 
+ * Class SamsaraCredential.
+ *
  * Model for managing Samsara API credentials and configuration
- * 
- * @package Fleetbase\Samsara\Models
  */
 class SamsaraCredential extends Model
 {
-    use HasUuid, HasPublicId, TracksApiCredential;
+    use HasUuid;
+    use HasPublicId;
+    use TracksApiCredential;
 
     /**
      * The database table used by the model.
@@ -27,7 +27,7 @@ class SamsaraCredential extends Model
     protected $table = 'samsara_credentials';
 
     /**
-     * The type of public Id to generate
+     * The type of public Id to generate.
      *
      * @var string
      */
@@ -60,15 +60,15 @@ class SamsaraCredential extends Model
      * @var array
      */
     protected $casts = [
-        'meta' => 'json',
-        'is_active' => 'boolean',
-        'is_sandbox' => 'boolean',
-        'last_sync_at' => 'datetime',
+        'meta'          => 'json',
+        'is_active'     => 'boolean',
+        'is_sandbox'    => 'boolean',
+        'last_sync_at'  => 'datetime',
         'sync_interval' => 'integer',
     ];
 
     /**
-     * Dynamic attributes that are appended to model
+     * Dynamic attributes that are appended to model.
      *
      * @var array
      */
@@ -79,12 +79,14 @@ class SamsaraCredential extends Model
      *
      * @var array
      */
-    protected $hidden = ['api_token', 'webhook_secret'];
+    // protected $hidden = ['api_token', 'webhook_secret'];
+    protected $hidden = [];
 
     /**
-     * Set the API token (encrypted)
+     * Set the API token (encrypted).
      *
      * @param string $value
+     *
      * @return void
      */
     public function setApiTokenAttribute($value)
@@ -95,7 +97,7 @@ class SamsaraCredential extends Model
     }
 
     /**
-     * Get the API token (decrypted)
+     * Get the API token (decrypted).
      *
      * @return string|null
      */
@@ -108,13 +110,15 @@ class SamsaraCredential extends Model
                 return null;
             }
         }
+
         return null;
     }
 
     /**
-     * Set the webhook secret (encrypted)
+     * Set the webhook secret (encrypted).
      *
      * @param string $value
+     *
      * @return void
      */
     public function setWebhookSecretAttribute($value)
@@ -125,7 +129,7 @@ class SamsaraCredential extends Model
     }
 
     /**
-     * Get the webhook secret (decrypted)
+     * Get the webhook secret (decrypted).
      *
      * @return string|null
      */
@@ -138,11 +142,12 @@ class SamsaraCredential extends Model
                 return null;
             }
         }
+
         return null;
     }
 
     /**
-     * Get the API base URL with fallback to default
+     * Get the API base URL with fallback to default.
      *
      * @return string
      */
@@ -152,7 +157,17 @@ class SamsaraCredential extends Model
     }
 
     /**
-     * Get the sync interval in minutes with fallback to default
+     * Set the API base URL with fallback to default.
+     *
+     * @return void
+     */
+    public function setApiBaseUrlAttribute($value)
+    {
+        $this->attributes['api_base_url'] = blank($value) ? 'https://api.samsara.com' : $value;
+    }
+
+    /**
+     * Get the sync interval in minutes with fallback to default.
      *
      * @return int
      */
@@ -162,7 +177,7 @@ class SamsaraCredential extends Model
     }
 
     /**
-     * Check if credentials are configured and active
+     * Check if credentials are configured and active.
      *
      * @return bool
      */
@@ -172,7 +187,7 @@ class SamsaraCredential extends Model
     }
 
     /**
-     * Check if webhook is configured
+     * Check if webhook is configured.
      *
      * @return bool
      */
@@ -182,7 +197,7 @@ class SamsaraCredential extends Model
     }
 
     /**
-     * Get authorization header for API requests
+     * Get authorization header for API requests.
      *
      * @return array
      */
@@ -190,13 +205,13 @@ class SamsaraCredential extends Model
     {
         return [
             'Authorization' => 'Bearer ' . $this->api_token,
-            'Accept' => 'application/json',
-            'Content-Type' => 'application/json',
+            'Accept'        => 'application/json',
+            'Content-Type'  => 'application/json',
         ];
     }
 
     /**
-     * Test the API connection
+     * Test the API connection.
      *
      * @return array
      */
@@ -211,10 +226,10 @@ class SamsaraCredential extends Model
 
         try {
             // Make a simple API call to test connection
-            $client = new \GuzzleHttp\Client();
+            $client   = new \GuzzleHttp\Client();
             $response = $client->get($this->api_base_url . '/fleet/vehicles', [
                 'headers' => $this->getAuthHeaders(),
-                'query' => ['limit' => 1],
+                'query'   => ['limit' => 1],
                 'timeout' => 10,
             ]);
 
@@ -238,7 +253,7 @@ class SamsaraCredential extends Model
     }
 
     /**
-     * Update last sync timestamp
+     * Update last sync timestamp.
      *
      * @return void
      */
@@ -248,9 +263,10 @@ class SamsaraCredential extends Model
     }
 
     /**
-     * Scope to get active credentials
+     * Scope to get active credentials.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
+     *
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeActive($query)
@@ -259,10 +275,11 @@ class SamsaraCredential extends Model
     }
 
     /**
-     * Scope to get credentials for a specific company
+     * Scope to get credentials for a specific company.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $companyUuid
+     * @param string                                $companyUuid
+     *
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeForCompany($query, $companyUuid)
@@ -270,4 +287,3 @@ class SamsaraCredential extends Model
         return $query->where('company_uuid', $companyUuid);
     }
 }
-

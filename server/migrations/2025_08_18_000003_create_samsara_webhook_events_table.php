@@ -17,9 +17,9 @@ return new class extends Migration
             $table->id();
             $table->string('uuid')->unique();
             $table->string('public_id')->unique();
-            $table->string('company_uuid')->index();
-            $table->string('samsara_credential_uuid')->index();
-            $table->string('samsara_vehicle_uuid')->nullable()->index();
+            $table->foreignUuid('company_uuid')->nullable()->references('uuid')->on('companies')->onDelete('CASCADE');
+            $table->foreignUuid('credential_uuid')->nullable()->references('uuid')->on('samsara_credentials')->onDelete('CASCADE');
+            $table->foreignUuid('samsara_vehicle_uuid')->nullable()->references('uuid')->on('samsara_vehicles')->onDelete('set null');
             $table->string('event_id')->nullable()->index(); // Samsara event ID
             $table->string('event_type')->index(); // alert, location, etc.
             $table->json('event_data'); // Full webhook payload
@@ -32,7 +32,6 @@ return new class extends Migration
             $table->index(['company_uuid', 'processing_status']);
             $table->index(['event_type', 'processing_status']);
             $table->index(['created_at']);
-            $table->index(['event_id']);
         });
     }
 

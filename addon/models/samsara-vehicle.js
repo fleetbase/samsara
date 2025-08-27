@@ -2,20 +2,26 @@ import Model, { attr, belongsTo } from '@ember-data/model';
 import { computed } from '@ember/object';
 
 export default class SamsaraVehicleModel extends Model {
-    @attr('string') samsaraVehicleId;
-    @attr('string') samsaraVehicleName;
-    @attr('string') samsaraVehicleVin;
-    @attr('string') samsaraVehicleSerial;
-    @attr() samsaraVehicleData;
-    @attr('date') lastSyncAt;
-    @attr('string') syncStatus;
-    @attr() meta;
-    @attr('date') createdAt;
-    @attr('date') updatedAt;
+    @attr('string') samsara_vehicle_id;
+    @attr('string') name;
+    @attr('string') vin;
+    @attr('string') serial;
+    @attr('string') model;
+    @attr('string') make;
+    @attr('string') year;
+    @attr('string') license_plate;
+    @attr('string') vehicle_type;
+    @attr('string') sync_status;
+    @attr('raw') meta;
+    @attr('raw') data;
+    @attr('raw') last_location;
+    @attr('date') last_sync_at;
+    @attr('date') created_at;
+    @attr('date') updated_at;
 
-    @belongsTo('vehicle', { async: true, inverse: null }) vehicle;
+    @belongsTo('vehicle') vehicle;
 
-    @computed('syncStatus')
+    @computed('syncStatus', 'sync_status')
     get syncStatusText() {
         const statusMap = {
             pending: 'Pending',
@@ -27,94 +33,52 @@ export default class SamsaraVehicleModel extends Model {
         return statusMap[this.syncStatus] || 'Unknown';
     }
 
-    @computed('syncStatus')
-    get syncStatusClass() {
-        const classMap = {
-            pending: 'text-yellow-600 bg-yellow-100',
-            syncing: 'text-blue-600 bg-blue-100',
-            active: 'text-green-600 bg-green-100',
-            failed: 'text-red-600 bg-red-100',
-            disabled: 'text-gray-600 bg-gray-100',
-        };
-        return classMap[this.syncStatus] || 'text-gray-600 bg-gray-100';
-    }
-
     @computed('vehicle')
     get isLinked() {
         return !!this.vehicle;
     }
 
-    @computed('isLinked')
-    get linkStatusText() {
-        return this.isLinked ? 'Linked' : 'Not Linked';
-    }
-
-    @computed('isLinked')
-    get linkStatusClass() {
-        return this.isLinked ? 'text-green-600' : 'text-gray-500';
-    }
-
-    @computed('samsaraVehicleName', 'samsaraVehicleId')
+    @computed('name', 'samsara_vehicle_id')
     get displayName() {
-        return this.samsaraVehicleName || `Vehicle ${this.samsaraVehicleId}`;
+        return this.name || `Vehicle ${this.samsara_vehicle_id}`;
     }
 
-    @computed('samsaraVehicleData')
-    get lastLocation() {
-        const data = this.samsaraVehicleData;
-        if (data && data.location) {
-            return {
-                latitude: data.location.latitude,
-                longitude: data.location.longitude,
-                timestamp: data.location.time,
-                speed: data.location.speed,
-                heading: data.location.heading,
-            };
-        }
-        return null;
-    }
-
-    @computed('lastLocation')
-    get hasLocation() {
-        return !!this.lastLocation;
-    }
-
-    @computed('hasLocation', 'lastLocation.{latitude,longitude}')
+    @computed('last_location', 'last_location.{latitude,longitude}')
     get locationText() {
-        if (this.hasLocation) {
-            const lat = this.lastLocation.latitude.toFixed(6);
-            const lng = this.lastLocation.longitude.toFixed(6);
+        if (this.last_location) {
+            const lat = this.last_location.latitude.toFixed(6);
+            const lng = this.last_location.longitude.toFixed(6);
             return `${lat}, ${lng}`;
         }
         return 'No location data';
     }
 
-    @computed('lastSyncAt')
+    @computed('last_sync_at')
     get lastSyncText() {
-        if (!this.lastSyncAt) {
+        if (!this.last_sync_at) {
             return 'Never synced';
         }
-        return this.lastSyncAt;
+        return this.last_sync_at;
     }
 
-    @computed('syncStatus')
+    @computed('sync_status')
     get canSync() {
-        return ['pending', 'active', 'failed'].includes(this.syncStatus);
+        return ['pending', 'active', 'failed'].includes(this.sync_status);
     }
 
-    @computed('syncStatus')
+    @computed('sync_status')
     get isSyncing() {
-        return this.syncStatus === 'syncing';
+        return this.sync_status === 'syncing';
     }
 
-    @computed('syncStatus')
+    @computed('sync_status')
     get isActive() {
-        return this.syncStatus === 'active';
+        return this.sync_status === 'active';
     }
 
-    @computed('syncStatus')
+    @computed('sync_status')
     get hasFailed() {
-        return this.syncStatus === 'failed';
+        return this.sync_status === 'failed';
     }
 
     @computed('meta.last_sync_error')
@@ -122,14 +86,14 @@ export default class SamsaraVehicleModel extends Model {
         return this.meta?.last_sync_error;
     }
 
-    @computed('samsaraVehicleVin')
+    @computed('vin')
     get displayVin() {
-        return this.samsaraVehicleVin || 'No VIN';
+        return this.vin || 'No VIN';
     }
 
-    @computed('samsaraVehicleSerial')
+    @computed('serial')
     get displaySerial() {
-        return this.samsaraVehicleSerial || 'No Serial';
+        return this.serial || 'No Serial';
     }
 
     @computed('vehicle.name')

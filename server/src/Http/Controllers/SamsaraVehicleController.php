@@ -2,21 +2,21 @@
 
 namespace Fleetbase\Samsara\Http\Controllers;
 
-use Fleetbase\Http\Controllers\Controller;
-use Fleetbase\Samsara\Models\SamsaraVehicle;
-use Fleetbase\Samsara\Models\SamsaraCredential;
 use Fleetbase\FleetOps\Models\Vehicle;
+use Fleetbase\Http\Controllers\Controller;
 use Fleetbase\Http\Requests\FleetbaseRequest;
+use Fleetbase\Http\Resources\FleetbaseResource;
+use Fleetbase\Http\Resources\FleetbaseResourceCollection;
+use Fleetbase\Samsara\Models\SamsaraCredential;
+use Fleetbase\Samsara\Models\SamsaraVehicle;
 use Fleetbase\Samsara\Services\SamsaraApiService;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 /**
- * Class SamsaraVehicleController
- * 
+ * Class SamsaraVehicleController.
+ *
  * Controller for managing Samsara vehicle sync operations
- * 
- * @package Fleetbase\Samsara\Http\Controllers
  */
 class SamsaraVehicleController extends Controller
 {
@@ -25,15 +25,13 @@ class SamsaraVehicleController extends Controller
     public function __construct(SamsaraApiService $samsaraApi)
     {
         $this->samsaraApi = $samsaraApi;
+        FleetbaseResource::wrap('samsaraVehicle');
     }
 
     /**
-     * Display a listing of Samsara vehicles
-     *
-     * @param FleetbaseRequest $request
-     * @return JsonResponse
+     * Display a listing of Samsara vehicles.
      */
-    public function index(FleetbaseRequest $request): JsonResponse
+    public function index(FleetbaseRequest $request): FleetbaseResourceCollection|AnonymousResourceCollection
     {
         $vehicles = SamsaraVehicle::where('company_uuid', session('company'))
             ->with(['vehicle'])
@@ -42,29 +40,29 @@ class SamsaraVehicleController extends Controller
             })
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = $request->input('search');
+
                 return $query->where(function ($q) use ($search) {
-                    $q->where('samsara_vehicle_name', 'like', "%{$search}%")
-                      ->orWhere('samsara_vehicle_vin', 'like', "%{$search}%")
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('vin', 'like', "%{$search}%")
                       ->orWhere('samsara_vehicle_id', 'like', "%{$search}%");
                 });
             })
             ->orderBy('created_at', 'desc')
             ->paginate();
 
-        return response()->json($vehicles);
+        FleetbaseResource::wrap('samsaraVehicles');
+
+        return FleetbaseResource::collection($vehicles);
     }
 
     /**
-     * Store a newly created Samsara vehicle sync
-     *
-     * @param FleetbaseRequest $request
-     * @return JsonResponse
+     * Store a newly created Samsara vehicle sync.
      */
-    public function store(FleetbaseRequest $request): JsonResponse
+    public function store(FleetbaseRequest $request): FleetbaseResource
     {
         $request->validate([
             'samsara_vehicle_id' => 'required|string',
-            'vehicle_uuid' => 'nullable|string|exists:vehicles,uuid',
+            'vehicle_uuid'       => 'nullable|string|exists:vehicles,uuid',
         ]);
 
         // Check if vehicle already exists
@@ -100,47 +98,37 @@ class SamsaraVehicleController extends Controller
         }
 
         $samsaraVehicle = SamsaraVehicle::create([
-            'company_uuid' => session('company'),
-            'vehicle_uuid' => $request->input('vehicle_uuid'),
-            'samsara_vehicle_id' => $request->input('samsara_vehicle_id'),
-            'samsara_vehicle_name' => $samsaraData['name'] ?? null,
-            'samsara_vehicle_vin' => $samsaraData['vin'] ?? null,
+            'company_uuid'           => session('company'),
+            'vehicle_uuid'           => $request->input('vehicle_uuid'),
+            'samsara_vehicle_id'     => $request->input('samsara_vehicle_id'),
+            'samsara_vehicle_name'   => $samsaraData['name'] ?? null,
+            'samsara_vehicle_vin'    => $samsaraData['vin'] ?? null,
             'samsara_vehicle_serial' => $samsaraData['serial'] ?? null,
-            'samsara_vehicle_data' => $samsaraData,
-            'sync_status' => 'active',
-            'last_sync_at' => now(),
+            'samsara_vehicle_data'   => $samsaraData,
+            'sync_status'            => 'active',
+            'last_sync_at'           => now(),
         ]);
 
-        return response()->json([
-            'vehicle' => $samsaraVehicle->load('vehicle'),
-            'message' => 'Samsara vehicle sync created successfully',
-        ], 201);
+        return new FleetbaseResource($samsaraVehicle);
     }
 
     /**
-     * Display the specified Samsara vehicle
-     *
-     * @param string $id
-     * @return JsonResponse
+     * Display the specified Samsara vehicle.
      */
-    public function show(string $id): JsonResponse
+    public function show(string $id): FleetbaseResource
     {
         $vehicle = SamsaraVehicle::where('company_uuid', session('company'))
             ->where('public_id', $id)
             ->with(['vehicle'])
             ->firstOrFail();
 
-        return response()->json($vehicle);
+        return new FleetbaseResource($vehicle);
     }
 
     /**
-     * Update the specified Samsara vehicle
-     *
-     * @param FleetbaseRequest $request
-     * @param string $id
-     * @return JsonResponse
+     * Update the specified Samsara vehicle.
      */
-    public function update(FleetbaseRequest $request, string $id): JsonResponse
+    public function update(FleetbaseRequest $request, string $id): FleetbaseResource
     {
         $samsaraVehicle = SamsaraVehicle::where('company_uuid', session('company'))
             ->where('public_id', $id)
@@ -148,7 +136,7 @@ class SamsaraVehicleController extends Controller
 
         $request->validate([
             'vehicle_uuid' => 'nullable|string|exists:vehicles,uuid',
-            'sync_status' => 'sometimes|in:active,disabled,failed',
+            'sync_status'  => 'sometimes|in:active,disabled,failed',
         ]);
 
         $samsaraVehicle->update($request->only([
@@ -156,19 +144,13 @@ class SamsaraVehicleController extends Controller
             'sync_status',
         ]));
 
-        return response()->json([
-            'vehicle' => $samsaraVehicle->load('vehicle'),
-            'message' => 'Samsara vehicle updated successfully',
-        ]);
+        return new FleetbaseResource($samsaraVehicle);
     }
 
     /**
-     * Remove the specified Samsara vehicle
-     *
-     * @param string $id
-     * @return JsonResponse
+     * Remove the specified Samsara vehicle.
      */
-    public function destroy(string $id): JsonResponse
+    public function destroy(string $id): FleetbaseResource
     {
         $vehicle = SamsaraVehicle::where('company_uuid', session('company'))
             ->where('public_id', $id)
@@ -176,15 +158,11 @@ class SamsaraVehicleController extends Controller
 
         $vehicle->delete();
 
-        return response()->json([
-            'message' => 'Samsara vehicle sync deleted successfully',
-        ]);
+        return new FleetbaseResource($vehicle);
     }
 
     /**
-     * Sync all vehicles from Samsara API
-     *
-     * @return JsonResponse
+     * Sync all vehicles from Samsara API.
      */
     public function syncAll(): JsonResponse
     {
@@ -200,10 +178,10 @@ class SamsaraVehicleController extends Controller
 
         try {
             $result = $this->samsaraApi->syncAllVehicles($credential);
-            
+
             return response()->json([
                 'message' => 'Vehicle sync completed',
-                'result' => $result,
+                'result'  => $result,
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -213,51 +191,46 @@ class SamsaraVehicleController extends Controller
     }
 
     /**
-     * Sync a specific vehicle from Samsara API
-     *
-     * @param string $id
-     * @return JsonResponse
+     * Sync a specific vehicle from Samsara API.
      */
     public function sync(string $id): JsonResponse
     {
         $samsaraVehicle = SamsaraVehicle::where('company_uuid', session('company'))
-            ->where('public_id', $id)
-            ->firstOrFail();
+            ->where('uuid', $id)
+            ->first();
+
+        if (!$samsaraVehicle) {
+            return response()->error('Samsara vehicle not found.');
+        }
 
         $credential = SamsaraCredential::where('company_uuid', session('company'))
-            ->where('is_active', true)
+            ->where('uuid', $samsaraVehicle->credential_uuid)
             ->first();
 
         if (!$credential) {
-            return response()->json([
-                'message' => 'No active Samsara credential found',
-            ], 400);
+            return response()->error('Samsara credential for vehicle not found.');
         }
 
         try {
             $samsaraVehicle->markAsSyncing();
-            
+
             $samsaraData = $this->samsaraApi->getVehicle($credential, $samsaraVehicle->samsara_vehicle_id);
             $samsaraVehicle->updateFromSamsaraData($samsaraData);
             $samsaraVehicle->markSyncComplete();
 
             return response()->json([
-                'vehicle' => $samsaraVehicle->load('vehicle'),
-                'message' => 'Vehicle synced successfully',
+                'samsaraVehicle' => $samsaraVehicle->load('vehicle'),
+                'message'        => 'Vehicle synced successfully',
             ]);
         } catch (\Exception $e) {
             $samsaraVehicle->markSyncFailed($e->getMessage());
-            
-            return response()->json([
-                'message' => 'Vehicle sync failed: ' . $e->getMessage(),
-            ], 500);
+
+            return response()->error('Vehicle sync failed: ' . $e->getMessage());
         }
     }
 
     /**
-     * Get available Samsara vehicles that are not yet synced
-     *
-     * @return JsonResponse
+     * Get available Samsara vehicles that are not yet synced.
      */
     public function getAvailable(): JsonResponse
     {
@@ -273,7 +246,7 @@ class SamsaraVehicleController extends Controller
 
         try {
             $allVehicles = $this->samsaraApi->getAllVehicles($credential);
-            
+
             // Get already synced vehicle IDs
             $syncedVehicleIds = SamsaraVehicle::where('company_uuid', session('company'))
                 ->pluck('samsara_vehicle_id')
@@ -286,7 +259,7 @@ class SamsaraVehicleController extends Controller
 
             return response()->json([
                 'vehicles' => array_values($availableVehicles),
-                'total' => count($availableVehicles),
+                'total'    => count($availableVehicles),
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -296,11 +269,7 @@ class SamsaraVehicleController extends Controller
     }
 
     /**
-     * Get vehicle location history
-     *
-     * @param string $id
-     * @param FleetbaseRequest $request
-     * @return JsonResponse
+     * Get vehicle location history.
      */
     public function getLocationHistory(string $id, FleetbaseRequest $request): JsonResponse
     {
@@ -319,7 +288,7 @@ class SamsaraVehicleController extends Controller
         }
 
         $startTime = $request->input('start_time', now()->subHours(24)->toISOString());
-        $endTime = $request->input('end_time', now()->toISOString());
+        $endTime   = $request->input('end_time', now()->toISOString());
 
         try {
             $locations = $this->samsaraApi->getVehicleLocationHistory(
@@ -330,10 +299,10 @@ class SamsaraVehicleController extends Controller
             );
 
             return response()->json([
-                'vehicle' => $samsaraVehicle,
-                'locations' => $locations,
+                'vehicle'    => $samsaraVehicle,
+                'locations'  => $locations,
                 'start_time' => $startTime,
-                'end_time' => $endTime,
+                'end_time'   => $endTime,
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -343,11 +312,7 @@ class SamsaraVehicleController extends Controller
     }
 
     /**
-     * Link Samsara vehicle to FleetOps vehicle
-     *
-     * @param string $id
-     * @param FleetbaseRequest $request
-     * @return JsonResponse
+     * Link Samsara vehicle to FleetOps vehicle.
      */
     public function linkVehicle(string $id, FleetbaseRequest $request): JsonResponse
     {
@@ -375,10 +340,7 @@ class SamsaraVehicleController extends Controller
     }
 
     /**
-     * Unlink Samsara vehicle from FleetOps vehicle
-     *
-     * @param string $id
-     * @return JsonResponse
+     * Unlink Samsara vehicle from FleetOps vehicle.
      */
     public function unlinkVehicle(string $id): JsonResponse
     {
@@ -396,4 +358,3 @@ class SamsaraVehicleController extends Controller
         ]);
     }
 }
-

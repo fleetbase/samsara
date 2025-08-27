@@ -2,19 +2,17 @@
 
 namespace Fleetbase\Samsara\Services;
 
+use Fleetbase\FleetOps\Models\Vehicle;
 use Fleetbase\Samsara\Models\SamsaraCredential;
 use Fleetbase\Samsara\Models\SamsaraVehicle;
 use Fleetbase\Samsara\Models\SamsaraWebhookEvent;
-use Fleetbase\FleetOps\Models\Vehicle;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
- * Class SamsaraSyncService
- * 
+ * Class SamsaraSyncService.
+ *
  * Service for handling scheduled synchronization tasks and FleetOps integration
- * 
- * @package Fleetbase\Samsara\Services
  */
 class SamsaraSyncService
 {
@@ -23,22 +21,22 @@ class SamsaraSyncService
 
     public function __construct(SamsaraApiService $apiService, SamsaraWebhookService $webhookService)
     {
-        $this->apiService = $apiService;
+        $this->apiService     = $apiService;
         $this->webhookService = $webhookService;
     }
 
     /**
      * Sync vehicles from Samsara API and create/update FleetOps vehicles.
      */
-    public function syncVehicles(SamsaraCredential $credential, bool $force = false, bool $includeInactive = false): array
+    public function syncVehicles(SamsaraCredential $credential, bool $force = false): array
     {
         $startTime = microtime(true);
-        $stats = [
-            'total' => 0,
-            'created' => 0,
-            'updated' => 0,
-            'linked' => 0,
-            'errors' => 0,
+        $stats     = [
+            'total'         => 0,
+            'created'       => 0,
+            'updated'       => 0,
+            'linked'        => 0,
+            'errors'        => 0,
             'error_details' => [],
         ];
 
@@ -52,44 +50,43 @@ class SamsaraSyncService
             $this->markSyncInProgress($credential);
 
             // Get vehicles from Samsara API
-            $samsaraVehicles = $this->apiService->getVehicles($credential, $includeInactive);
-            $stats['total'] = count($samsaraVehicles);
+            $samsaraVehicles = $this->apiService->getVehicles($credential);
+            $stats['total']  = count($samsaraVehicles);
 
             foreach ($samsaraVehicles as $vehicleData) {
                 try {
                     $result = $this->syncVehicle($credential, $vehicleData);
-                    
+
                     if ($result['samsara_vehicle']->wasRecentlyCreated) {
                         $stats['created']++;
                     } else {
                         $stats['updated']++;
                     }
-                    
+
                     if ($result['fleetops_vehicle_created'] || $result['fleetops_vehicle_updated']) {
                         $stats['linked']++;
                     }
                 } catch (\Exception $e) {
                     $stats['errors']++;
                     $stats['error_details'][] = "Vehicle {$vehicleData['id']}: {$e->getMessage()}";
-                    
+
                     Log::error('Samsara vehicle sync error', [
                         'credential_id' => $credential->uuid,
-                        'vehicle_id' => $vehicleData['id'] ?? 'unknown',
-                        'error' => $e->getMessage(),
+                        'vehicle_id'    => $vehicleData['id'] ?? 'unknown',
+                        'error'         => $e->getMessage(),
                     ]);
                 }
             }
 
             // Update credential sync timestamp
             $credential->update(['last_sync_at' => now()]);
-
         } catch (\Exception $e) {
             $stats['errors']++;
             $stats['error_details'][] = $e->getMessage();
-            
+
             Log::error('Samsara sync failed', [
                 'credential_id' => $credential->uuid,
-                'error' => $e->getMessage(),
+                'error'         => $e->getMessage(),
             ]);
         } finally {
             // Mark sync as complete
@@ -97,8 +94,8 @@ class SamsaraSyncService
         }
 
         $stats['duration'] = microtime(true) - $startTime;
-        $stats['synced'] = $stats['created'] + $stats['updated'];
-        
+        $stats['synced']   = $stats['created'] + $stats['updated'];
+
         return $stats;
     }
 
@@ -108,8 +105,8 @@ class SamsaraSyncService
     public function syncVehicle(SamsaraCredential $credential, array $vehicleData): array
     {
         $result = [
-            'samsara_vehicle' => null,
-            'fleetops_vehicle' => null,
+            'samsara_vehicle'          => null,
+            'fleetops_vehicle'         => null,
             'fleetops_vehicle_created' => false,
             'fleetops_vehicle_updated' => false,
         ];
@@ -118,25 +115,26 @@ class SamsaraSyncService
             // Create or update Samsara vehicle record
             $samsaraVehicle = SamsaraVehicle::updateOrCreate(
                 [
-                    'company_uuid' => $credential->company_uuid,
+                    'company_uuid'       => $credential->company_uuid,
                     'samsara_vehicle_id' => $vehicleData['id'],
                 ],
                 [
                     'credential_uuid' => $credential->uuid,
-                    'name' => $vehicleData['name'] ?? 'Unknown Vehicle',
-                    'vin' => $vehicleData['vin'] ?? null,
-                    'serial' => $vehicleData['serial'] ?? null,
-                    'license_plate' => $vehicleData['licensePlate'] ?? null,
-                    'vehicle_type' => $this->mapVehicleType($vehicleData['vehicleType'] ?? 'unknown'),
-                    'sync_status' => 'active',
-                    'metadata' => [
-                        'make' => $vehicleData['make'] ?? null,
-                        'model' => $vehicleData['model'] ?? null,
-                        'year' => $vehicleData['year'] ?? null,
-                        'fuel_type' => $vehicleData['fuelType'] ?? null,
-                        'engine_hours' => $vehicleData['engineHours'] ?? null,
+                    'name'            => $vehicleData['name'] ?? 'Unknown Vehicle',
+                    'vin'             => $vehicleData['vin'] ?? null,
+                    'serial'          => $vehicleData['serial'] ?? null,
+                    'license_plate'   => $vehicleData['licensePlate'] ?? null,
+                    'make'            => $vehicleData['make'] ?? null,
+                    'model'           => $vehicleData['model'] ?? null,
+                    'year'            => $vehicleData['year'] ?? null,
+                    'vehicle_type'    => $this->mapVehicleType($vehicleData['vehicleType'] ?? 'unknown'),
+                    'sync_status'     => 'active',
+                    'meta'            => [
+                        'fuel_type'       => $vehicleData['fuelType'] ?? null,
+                        'engine_hours'    => $vehicleData['engineHours'] ?? null,
                         'odometer_meters' => $vehicleData['odometerMeters'] ?? null,
                     ],
+                    'data'         => $vehicleData,
                     'last_sync_at' => now(),
                 ]
             );
@@ -144,8 +142,8 @@ class SamsaraSyncService
             $result['samsara_vehicle'] = $samsaraVehicle;
 
             // Create or update FleetOps vehicle
-            $fleetOpsResult = $this->createOrUpdateFleetOpsVehicle($samsaraVehicle, $vehicleData);
-            $result['fleetops_vehicle'] = $fleetOpsResult['vehicle'];
+            $fleetOpsResult                     = $this->createOrUpdateFleetOpsVehicle($samsaraVehicle, $vehicleData);
+            $result['fleetops_vehicle']         = $fleetOpsResult['vehicle'];
             $result['fleetops_vehicle_created'] = $fleetOpsResult['created'];
             $result['fleetops_vehicle_updated'] = $fleetOpsResult['updated'];
 
@@ -153,7 +151,6 @@ class SamsaraSyncService
             if ($fleetOpsResult['vehicle']) {
                 $samsaraVehicle->update([
                     'vehicle_uuid' => $fleetOpsResult['vehicle']->uuid,
-                    'is_linked' => true,
                 ]);
             }
 
@@ -179,7 +176,7 @@ class SamsaraSyncService
 
         // Check if FleetOps vehicle already exists
         $fleetOpsVehicle = null;
-        
+
         if ($samsaraVehicle->vehicle_uuid) {
             $fleetOpsVehicle = Vehicle::where('uuid', $samsaraVehicle->vehicle_uuid)->first();
         }
@@ -199,22 +196,24 @@ class SamsaraSyncService
 
         $vehicleAttributes = [
             'company_uuid' => $samsaraVehicle->company_uuid,
-            'name' => $samsaraVehicle->name,
-            'vin' => $samsaraVehicle->vin,
+            'vin'          => $samsaraVehicle->vin,
             'plate_number' => $samsaraVehicle->license_plate,
-            'year' => $samsaraVehicle->metadata['year'] ?? null,
-            'make' => $samsaraVehicle->metadata['make'] ?? null,
-            'model' => $samsaraVehicle->metadata['model'] ?? null,
-            'trim' => null,
-            'type' => $this->mapToFleetOpsVehicleType($samsaraVehicle->vehicle_type),
-            'status' => 'active',
-            'meta' => array_merge($samsaraVehicle->metadata ?? [], [
-                'samsara_vehicle_id' => $samsaraVehicle->samsara_vehicle_id,
-                'samsara_synced' => true,
-                'samsara_sync_source' => 'api',
-                'fuel_type' => $samsaraVehicle->metadata['fuel_type'] ?? null,
-                'engine_hours' => $samsaraVehicle->metadata['engine_hours'] ?? null,
-                'odometer_meters' => $samsaraVehicle->metadata['odometer_meters'] ?? null,
+            'year'         => $samsaraVehicle->year ?? null,
+            'make'         => $samsaraVehicle->make ?? null,
+            'model'        => $samsaraVehicle->model ?? null,
+            'trim'         => null,
+            'type'         => $this->mapToFleetOpsVehicleType($samsaraVehicle->vehicle_type),
+            'status'       => 'active',
+            'online'       => 0,
+            'meta'         => array_merge($samsaraVehicle->meta ?? [], [
+                'samsara_vehicle_id'      => $samsaraVehicle->samsara_vehicle_id,
+                'samsara_vehicle_name'    => $samsaraVehicle->name,
+                'samsara_vehicle_serial'  => $samsaraVehicle->serial,
+                'samsara_synced'          => true,
+                'samsara_sync_source'     => 'api',
+                'fuel_type'               => $samsaraVehicle->meta['fuel_type'] ?? null,
+                'engine_hours'            => $samsaraVehicle->meta['engine_hours'] ?? null,
+                'odometer_meters'         => $samsaraVehicle->meta['odometer_meters'] ?? null,
             ]),
         ];
 
@@ -225,7 +224,7 @@ class SamsaraSyncService
             $result['updated'] = true;
         } else {
             // Create new vehicle
-            $fleetOpsVehicle = Vehicle::create($vehicleAttributes);
+            $fleetOpsVehicle   = Vehicle::create($vehicleAttributes);
             $result['vehicle'] = $fleetOpsVehicle;
             $result['created'] = true;
         }
@@ -239,12 +238,12 @@ class SamsaraSyncService
     protected function updateVehicleLocation(SamsaraVehicle $samsaraVehicle, array $locationData): void
     {
         $location = [
-            'latitude' => $locationData['latitude'] ?? null,
+            'latitude'  => $locationData['latitude'] ?? null,
             'longitude' => $locationData['longitude'] ?? null,
             'timestamp' => $locationData['time'] ?? now()->toISOString(),
-            'speed' => $locationData['speedMilesPerHour'] ?? null,
-            'heading' => $locationData['heading'] ?? null,
-            'address' => $locationData['address'] ?? null,
+            'speed'     => $locationData['speedMilesPerHour'] ?? null,
+            'heading'   => $locationData['heading'] ?? null,
+            'address'   => $locationData['address'] ?? null,
         ];
 
         $samsaraVehicle->update(['last_location' => $location]);
@@ -255,11 +254,11 @@ class SamsaraSyncService
             if ($fleetOpsVehicle) {
                 $fleetOpsVehicle->update([
                     'location' => [
-                        'type' => 'Point',
+                        'type'        => 'Point',
                         'coordinates' => [$location['longitude'], $location['latitude']],
                     ],
-                    'heading' => $location['heading'],
-                    'speed' => $location['speed'],
+                    'heading'  => $location['heading'],
+                    'speed'    => $location['speed'],
                     'altitude' => $locationData['altitude'] ?? null,
                 ]);
             }
@@ -272,13 +271,13 @@ class SamsaraSyncService
     protected function mapVehicleType(string $samsaraType): string
     {
         $typeMap = [
-            'truck' => 'truck',
-            'van' => 'van',
-            'car' => 'car',
-            'trailer' => 'trailer',
+            'truck'      => 'truck',
+            'van'        => 'van',
+            'car'        => 'car',
+            'trailer'    => 'trailer',
             'motorcycle' => 'motorcycle',
-            'bus' => 'bus',
-            'equipment' => 'equipment',
+            'bus'        => 'bus',
+            'equipment'  => 'equipment',
         ];
 
         return $typeMap[strtolower($samsaraType)] ?? 'truck';
@@ -290,13 +289,13 @@ class SamsaraSyncService
     protected function mapToFleetOpsVehicleType(string $vehicleType): string
     {
         $typeMap = [
-            'truck' => 'truck',
-            'van' => 'van',
-            'car' => 'car',
-            'trailer' => 'trailer',
+            'truck'      => 'truck',
+            'van'        => 'van',
+            'car'        => 'car',
+            'trailer'    => 'trailer',
             'motorcycle' => 'motorcycle',
-            'bus' => 'bus',
-            'equipment' => 'other',
+            'bus'        => 'bus',
+            'equipment'  => 'other',
         ];
 
         return $typeMap[$vehicleType] ?? 'truck';
@@ -305,15 +304,15 @@ class SamsaraSyncService
     /**
      * Preview what would be synced without making changes.
      */
-    public function previewSync(SamsaraCredential $credential, bool $includeInactive = false): array
+    public function previewSync(SamsaraCredential $credential): array
     {
         try {
-            $samsaraVehicles = $this->apiService->getVehicles($credential, $includeInactive);
-            
-            $newVehicles = 0;
+            $samsaraVehicles = $this->apiService->getVehicles($credential);
+
+            $newVehicles      = 0;
             $existingVehicles = 0;
             $linkableVehicles = 0;
-            $sampleVehicles = [];
+            $sampleVehicles   = [];
 
             foreach ($samsaraVehicles as $vehicleData) {
                 $existingSamsara = SamsaraVehicle::where('company_uuid', $credential->company_uuid)
@@ -329,40 +328,39 @@ class SamsaraSyncService
                 // Check if can be linked to existing FleetOps vehicle
                 if (!empty($vehicleData['vin']) || !empty($vehicleData['licensePlate'])) {
                     $query = Vehicle::where('company_uuid', $credential->company_uuid);
-                    
+
                     if (!empty($vehicleData['vin'])) {
                         $query->where('vin', $vehicleData['vin']);
                     } elseif (!empty($vehicleData['licensePlate'])) {
                         $query->where('plate_number', $vehicleData['licensePlate']);
                     }
-                    
+
                     if ($query->exists()) {
                         $linkableVehicles++;
                     }
                 }
 
                 $sampleVehicles[] = [
-                    'id' => $vehicleData['id'],
+                    'id'   => $vehicleData['id'],
                     'name' => $vehicleData['name'] ?? 'Unknown Vehicle',
                 ];
             }
 
             return [
-                'total_vehicles' => count($samsaraVehicles),
-                'new_vehicles' => $newVehicles,
+                'total_vehicles'    => count($samsaraVehicles),
+                'new_vehicles'      => $newVehicles,
                 'existing_vehicles' => $existingVehicles,
                 'linkable_vehicles' => $linkableVehicles,
-                'sample_vehicles' => $sampleVehicles,
+                'sample_vehicles'   => $sampleVehicles,
             ];
-
         } catch (\Exception $e) {
             return [
-                'error' => $e->getMessage(),
-                'total_vehicles' => 0,
-                'new_vehicles' => 0,
+                'error'             => $e->getMessage(),
+                'total_vehicles'    => 0,
+                'new_vehicles'      => 0,
                 'existing_vehicles' => 0,
                 'linkable_vehicles' => 0,
-                'sample_vehicles' => [],
+                'sample_vehicles'   => [],
             ];
         }
     }
@@ -392,21 +390,21 @@ class SamsaraSyncService
     }
 
     /**
-     * Run full synchronization for all active credentials
+     * Run full synchronization for all active credentials.
      */
     public function runFullSync(): array
     {
         $result = [
-            'credentials_processed' => 0,
-            'total_vehicles_synced' => 0,
+            'credentials_processed'  => 0,
+            'total_vehicles_synced'  => 0,
             'total_locations_synced' => 0,
-            'errors' => [],
-            'start_time' => now(),
+            'errors'                 => [],
+            'start_time'             => now(),
         ];
 
         try {
             $credentials = SamsaraCredential::active()->get();
-            
+
             Log::info('Starting full Samsara sync', [
                 'credentials_count' => $credentials->count(),
             ]);
@@ -414,21 +412,20 @@ class SamsaraSyncService
             foreach ($credentials as $credential) {
                 try {
                     $credentialResult = $this->syncVehicles($credential);
-                    
+
                     $result['credentials_processed']++;
                     $result['total_vehicles_synced'] += $credentialResult['synced'] ?? 0;
-                    
+
                     if (!empty($credentialResult['error_details'])) {
                         $result['errors'] = array_merge($result['errors'], $credentialResult['error_details']);
                     }
-
                 } catch (\Exception $e) {
-                    $error = "Credential {$credential->public_id} sync failed: " . $e->getMessage();
+                    $error              = "Credential {$credential->public_id} sync failed: " . $e->getMessage();
                     $result['errors'][] = $error;
-                    
+
                     Log::error('Credential sync error', [
                         'credential_id' => $credential->public_id,
-                        'error' => $e->getMessage(),
+                        'error'         => $e->getMessage(),
                     ]);
                 }
             }
@@ -437,7 +434,6 @@ class SamsaraSyncService
             $result['duration'] = $result['end_time']->diffInSeconds($result['start_time']);
 
             Log::info('Full Samsara sync completed', $result);
-
         } catch (\Exception $e) {
             $result['errors'][] = 'Full sync failed: ' . $e->getMessage();
             Log::error('Full sync error', ['error' => $e->getMessage()]);
@@ -447,104 +443,102 @@ class SamsaraSyncService
     }
 
     /**
-     * Get sync status for all credentials
+     * Get sync status for all credentials.
      */
     public function getSyncStatus(): array
     {
         try {
             $credentials = SamsaraCredential::active()->get();
-            $status = [];
+            $status      = [];
 
             foreach ($credentials as $credential) {
-                $vehiclesCount = SamsaraVehicle::where('company_uuid', $credential->company_uuid)->count();
+                $vehiclesCount       = SamsaraVehicle::where('company_uuid', $credential->company_uuid)->count();
                 $activeVehiclesCount = SamsaraVehicle::where('company_uuid', $credential->company_uuid)
                     ->where('sync_status', 'active')
                     ->count();
                 $linkedVehiclesCount = SamsaraVehicle::where('company_uuid', $credential->company_uuid)
-                    ->where('is_linked', true)
+                    ->whereNotNull('vehicle_uuid')
                     ->count();
 
                 $status[] = [
-                    'credential_id' => $credential->public_id,
-                    'company_uuid' => $credential->company_uuid,
-                    'last_sync_at' => $credential->last_sync_at,
-                    'sync_interval' => $credential->sync_interval,
-                    'vehicles_total' => $vehiclesCount,
+                    'credential_id'   => $credential->public_id,
+                    'company_uuid'    => $credential->company_uuid,
+                    'last_sync_at'    => $credential->last_sync_at,
+                    'sync_interval'   => $credential->sync_interval,
+                    'vehicles_total'  => $vehiclesCount,
                     'vehicles_active' => $activeVehiclesCount,
                     'vehicles_linked' => $linkedVehiclesCount,
-                    'is_healthy' => $credential->last_sync_at && 
-                                   $credential->last_sync_at->gt(now()->subMinutes($credential->sync_interval * 2)),
+                    'is_healthy'      => $credential->last_sync_at
+                                   && $credential->last_sync_at->gt(now()->subMinutes($credential->sync_interval * 2)),
                 ];
             }
 
             return [
-                'credentials' => $status,
-                'total_credentials' => count($status),
-                'healthy_credentials' => count(array_filter($status, fn($s) => $s['is_healthy'])),
-                'last_check' => now(),
+                'credentials'         => $status,
+                'total_credentials'   => count($status),
+                'healthy_credentials' => count(array_filter($status, fn ($s) => $s['is_healthy'])),
+                'last_check'          => now(),
             ];
-
         } catch (\Exception $e) {
             Log::error('Sync status check error', ['error' => $e->getMessage()]);
-            
+
             return [
-                'credentials' => [],
-                'total_credentials' => 0,
+                'credentials'         => [],
+                'total_credentials'   => 0,
                 'healthy_credentials' => 0,
-                'last_check' => now(),
-                'error' => $e->getMessage(),
+                'last_check'          => now(),
+                'error'               => $e->getMessage(),
             ];
         }
     }
 
     /**
-     * Process pending webhook events
+     * Process pending webhook events.
      */
     public function processPendingWebhooks(int $limit = 100): array
     {
         try {
             Log::info('Processing pending webhooks', ['limit' => $limit]);
-            
-            $result = $this->webhookService->processPendingEvents(null, $limit);
-            
-            Log::info('Pending webhooks processed', $result);
-            
-            return $result;
 
+            $result = $this->webhookService->processPendingEvents(null, $limit);
+
+            Log::info('Pending webhooks processed', $result);
+
+            return $result;
         } catch (\Exception $e) {
             $error = 'Pending webhooks processing failed: ' . $e->getMessage();
             Log::error('Pending webhooks error', ['error' => $e->getMessage()]);
-            
+
             return [
-                'total' => 0,
+                'total'     => 0,
                 'processed' => 0,
-                'failed' => 0,
-                'errors' => [$error],
+                'failed'    => 0,
+                'errors'    => [$error],
             ];
         }
     }
 
     /**
-     * Run health check for all integrations
+     * Run health check for all integrations.
      */
     public function healthCheck(): array
     {
         $result = [
             'overall_status' => 'healthy',
-            'checks' => [],
-            'timestamp' => now(),
+            'checks'         => [],
+            'timestamp'      => now(),
         ];
 
         try {
             // Check database connectivity
             $result['checks']['database'] = $this->checkDatabase();
-            
+
             // Check API connectivity for each credential
             $result['checks']['api_connections'] = $this->checkApiConnections();
-            
+
             // Check sync status
             $result['checks']['sync_status'] = $this->getSyncStatus();
-            
+
             // Check for failed events
             $result['checks']['failed_events'] = $this->checkFailedEvents();
 
@@ -562,22 +556,22 @@ class SamsaraSyncService
             }
 
             $result['overall_status'] = $hasErrors ? 'unhealthy' : 'healthy';
-
         } catch (\Exception $e) {
             $result['overall_status'] = 'error';
-            $result['error'] = $e->getMessage();
+            $result['error']          = $e->getMessage();
         }
 
         return $result;
     }
 
     /**
-     * Check database connectivity
+     * Check database connectivity.
      */
     protected function checkDatabase(): array
     {
         try {
             SamsaraCredential::count();
+
             return ['status' => 'healthy', 'message' => 'Database accessible'];
         } catch (\Exception $e) {
             return ['status' => 'unhealthy', 'error' => $e->getMessage()];
@@ -585,28 +579,27 @@ class SamsaraSyncService
     }
 
     /**
-     * Check API connections for all credentials
+     * Check API connections for all credentials.
      */
     protected function checkApiConnections(): array
     {
         $connections = [];
-        
+
         try {
             $credentials = SamsaraCredential::active()->get();
-            
+
             foreach ($credentials as $credential) {
-                $test = $this->apiService->testConnection($credential);
+                $test          = $this->apiService->testConnection($credential);
                 $connections[] = [
                     'credential_id' => $credential->public_id,
-                    'status' => $test['success'] ? 'healthy' : 'unhealthy',
-                    'message' => $test['message'],
+                    'status'        => $test['success'] ? 'healthy' : 'unhealthy',
+                    'message'       => $test['message'],
                 ];
             }
-
         } catch (\Exception $e) {
             $connections[] = [
                 'status' => 'error',
-                'error' => $e->getMessage(),
+                'error'  => $e->getMessage(),
             ];
         }
 
@@ -614,7 +607,7 @@ class SamsaraSyncService
     }
 
     /**
-     * Check for failed webhook events
+     * Check for failed webhook events.
      */
     protected function checkFailedEvents(): array
     {
@@ -624,17 +617,15 @@ class SamsaraSyncService
                 ->count();
 
             return [
-                'status' => $failedCount > 10 ? 'unhealthy' : 'healthy',
+                'status'            => $failedCount > 10 ? 'unhealthy' : 'healthy',
                 'failed_events_24h' => $failedCount,
-                'message' => $failedCount > 10 ? 'High number of failed events' : 'Normal event processing',
+                'message'           => $failedCount > 10 ? 'High number of failed events' : 'Normal event processing',
             ];
-
         } catch (\Exception $e) {
             return [
                 'status' => 'error',
-                'error' => $e->getMessage(),
+                'error'  => $e->getMessage(),
             ];
         }
     }
 }
-

@@ -2,36 +2,29 @@
 
 namespace Fleetbase\Samsara\Http\Middleware;
 
-use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * Class SamsaraCompanyScope
- * 
+ * Class SamsaraCompanyScope.
+ *
  * Middleware to ensure proper company scoping for Samsara resources
- * 
- * @package Fleetbase\Samsara\Http\Middleware
  */
 class SamsaraCompanyScope
 {
     /**
      * Handle an incoming request.
-     *
-     * @param Request $request
-     * @param Closure $next
-     * @return mixed
      */
-    public function handle(Request $request, Closure $next)
+    public function handle(Request $request, \Closure $next)
     {
         $user = Auth::user();
-        
+
         if (!$user) {
-            return response()->json(['error' => 'Unauthorized'], 401);
+            return response()->error('Unauthorized', 401);
         }
 
         if (!$user->company_uuid) {
-            return response()->json(['error' => 'User must belong to a company'], 403);
+            return response()->error('User does not belong to a company', 403);
         }
 
         // Add company UUID to request for use in controllers
@@ -44,10 +37,7 @@ class SamsaraCompanyScope
     }
 
     /**
-     * Set global scope for Samsara models
-     *
-     * @param string $companyUuid
-     * @return void
+     * Set global scope for Samsara models.
      */
     protected function setGlobalScope(string $companyUuid): void
     {
@@ -65,4 +55,3 @@ class SamsaraCompanyScope
         });
     }
 }
-

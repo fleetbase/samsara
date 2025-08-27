@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::prefix(config('samsara.api.routing.prefix', 'starter'))->namespace('Fleetbase\Samsara\Http\Controllers')->group(
+Route::prefix(config('samsara.api.routing.prefix', 'samsara'))->namespace('Fleetbase\Samsara\Http\Controllers')->group(
     function ($router) {
         /*
         |--------------------------------------------------------------------------
@@ -34,9 +34,10 @@ Route::prefix(config('samsara.api.routing.prefix', 'starter'))->namespace('Fleet
                             $router->get('/active', 'SamsaraCredentialController@getActive');
                             $router->post('/test', 'SamsaraCredentialController@testCredentials');
                             $router->get('/{id}', 'SamsaraCredentialController@show');
-                            $router->patch('/{id}', 'SamsaraCredentialController@update');
+                            $router->put('/{id}', 'SamsaraCredentialController@update');
                             $router->delete('/{id}', 'SamsaraCredentialController@destroy');
                             $router->post('/{id}/test', 'SamsaraCredentialController@testConnection');
+                            $router->post('/{id}/sync', 'SamsaraCredentialController@sync');
                             $router->post('/{id}/activate', 'SamsaraCredentialController@activate');
                             $router->get('/{id}/stats', 'SamsaraCredentialController@getSyncStats');
                         });
@@ -48,7 +49,7 @@ Route::prefix(config('samsara.api.routing.prefix', 'starter'))->namespace('Fleet
                             $router->get('/available', 'SamsaraVehicleController@getAvailable');
                             $router->post('/sync-all', 'SamsaraVehicleController@syncAll');
                             $router->get('/{id}', 'SamsaraVehicleController@show');
-                            $router->patch('/{id}', 'SamsaraVehicleController@update');
+                            $router->put('/{id}', 'SamsaraVehicleController@update');
                             $router->delete('/{id}', 'SamsaraVehicleController@destroy');
                             $router->post('/{id}/sync', 'SamsaraVehicleController@sync');
                             $router->get('/{id}/location-history', 'SamsaraVehicleController@getLocationHistory');
@@ -69,33 +70,39 @@ Route::prefix(config('samsara.api.routing.prefix', 'starter'))->namespace('Fleet
                         // Sync and Health Check Endpoints
                         $router->prefix('sync')->group(function ($router) {
                             $router->post('/full', function () {
-                                $syncService = app(\Fleetbase\Samsara\Services\SamsaraSyncService::class);
+                                $syncService = app(Fleetbase\Samsara\Services\SamsaraSyncService::class);
+
                                 return response()->json($syncService->runFullSync());
                             });
-                            
+
                             $router->post('/stale-vehicles', function () {
-                                $syncService = app(\Fleetbase\Samsara\Services\SamsaraSyncService::class);
+                                $syncService = app(Fleetbase\Samsara\Services\SamsaraSyncService::class);
+
                                 return response()->json($syncService->syncStaleVehicles());
                             });
-                            
+
                             $router->post('/pending-webhooks', function () {
-                                $syncService = app(\Fleetbase\Samsara\Services\SamsaraSyncService::class);
+                                $syncService = app(Fleetbase\Samsara\Services\SamsaraSyncService::class);
+
                                 return response()->json($syncService->processPendingWebhooks());
                             });
-                            
+
                             $router->get('/status', function () {
-                                $syncService = app(\Fleetbase\Samsara\Services\SamsaraSyncService::class);
+                                $syncService = app(Fleetbase\Samsara\Services\SamsaraSyncService::class);
+
                                 return response()->json($syncService->getSyncStatus());
                             });
-                            
+
                             $router->get('/health', function () {
-                                $syncService = app(\Fleetbase\Samsara\Services\SamsaraSyncService::class);
+                                $syncService = app(Fleetbase\Samsara\Services\SamsaraSyncService::class);
+
                                 return response()->json($syncService->healthCheck());
                             });
-                            
+
                             $router->post('/cleanup', function () {
-                                $syncService = app(\Fleetbase\Samsara\Services\SamsaraSyncService::class);
-                                $days = request()->input('days', 30);
+                                $syncService = app(Fleetbase\Samsara\Services\SamsaraSyncService::class);
+                                $days        = request()->input('days', 30);
+
                                 return response()->json($syncService->cleanup($days));
                             });
                         });
@@ -111,7 +118,6 @@ Route::prefix(config('samsara.api.routing.prefix', 'starter'))->namespace('Fleet
         |
         | Public routes for receiving webhooks from Samsara (no authentication).
         */
-        $router->post('webhook/{companyId}', 'SamsaraWebhookController@handle')
-            ->name('samsara.webhook');
+        $router->post('webhook/{companyId}', 'SamsaraWebhookController@handle')->name('samsara.webhook');
     }
 );

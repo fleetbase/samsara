@@ -1,15 +1,145 @@
 <div class="space-y-4">
     <ContentPanel @title="Samsara Credentials" @open={{true}} @pad={{true}} @panelBodyClass="bg-white dark:bg-gray-800">
-        <InputGroup @name="API Token" @helpText="Your Samsara API Token.">
-            {{! template-lint-disable require-input-label }}
-            <Input @value={{this.accessToken}} placeholder="Samsara API Token" class="form-input form-input-sm w-full" disabled={{this.getSamsaraSettings.isRunning}} />
-        </InputGroup>
-        <InputGroup @name="Sandbox">
-            {{! template-lint-disable require-input-label }}
-            <Toggle @label="Sandbox" @value={{this.sandbox}} @onToggle={{fn (mut this.sandbox)}} />
-        </InputGroup>
+        <div class="flex flex-row justify-end mb-4">
+            <Button @text="New Samsara Credential" @icon="plus" @onClick={{this.createNewCredential}} @isLoading={{this.loadApiCredentials.isRunning}} />
+        </div>
+        <div class="space-y-4">
+            {{#each this.apiCredentials as |apiCredential|}}
+                <div class="border border-gray-700 shadow-sm rounded-md px-4 py-2">
+                    <InputGroup @name="Name" @helpText="Samsara API Credential nickname.">
+                        {{! template-lint-disable require-input-label }}
+                        <Input @value={{apiCredential.name}} placeholder="Samsara API Token" class="form-input form-input-sm w-full" disabled={{this.saveApiCredentials.isRunning}} />
+                    </InputGroup>
+                    <InputGroup @name="API Token" @helpText="Your Samsara API Token.">
+                        {{! template-lint-disable require-input-label }}
+                        <Input @value={{apiCredential.api_token}} placeholder="Samsara API Token" class="form-input form-input-sm w-full" disabled={{this.saveApiCredentials.isRunning}} />
+                    </InputGroup>
+                    <InputGroup @name="Webhook Secret" @helpText="Your Samsara Webhook Secret.">
+                        {{! template-lint-disable require-input-label }}
+                        <Input @value={{apiCredential.webhook_secret}} placeholder="Samsara Webhook Secret" class="form-input form-input-sm w-full" disabled={{this.saveApiCredentials.isRunning}} />
+                    </InputGroup>
+                    <div class="flex flex-row items-center space-x-4">
+                        <InputGroup @name="Sandbox">
+                            {{! template-lint-disable require-input-label }}
+                            <Toggle @label="Sandbox" @value={{apiCredential.is_sandbox}} @onToggle={{fn (mut apiCredential.is_sandbox)}} @disabled={{this.saveApiCredentials.isRunning}} />
+                        </InputGroup>
+                        <Button
+                            @text="Test Connection"
+                            @icon="plug"
+                            @onClick={{perform this.testCredentialConnection apiCredential}}
+                            @disabled={{this.saveApiCredentials.isRunning}}
+                            @isLoading={{this.testCredentialConnection.isRunning}}
+                        />
+                        <Button
+                            @text="Sync"
+                            @icon="sync"
+                            @onClick={{perform this.runSync apiCredential}}
+                            @disabled={{this.saveApiCredentials.isRunning}}
+                            @isLoading={{this.runSync.isRunning}}
+                        />
+                        <Button @text="Delete" @type="danger" @icon="trash" @disabled={{this.deleteApiCredential.isRunning}} @onClick={{perform this.deleteApiCredential apiCredential}} />
+                    </div>
+                    {{#if (get this.syncResults apiCredential.id)}}
+                        {{#let (get this.syncResults apiCredential.id) as |syncResults|}}
+                            <div class="bg-white dark:bg-gray-900 shadow-sm p-2 rounded-md font-mono text-xs border border-gray-200 dark:border-gray-700 text-green-500">
+                                <div class="font-bold font-mono">Sync Results</div>
+                                <hr class="border-0 bg-green-500 h-px my-1" />
+                                <div class="font-mono">Duration: {{format-duration syncResults.duration}}</div>
+                                <div>Errors: {{syncResults.errors}}</div>
+                                {{#each syncResults.error_details as |error|}}
+                                    <div class="text-red-500 ml-2 font-mono">{{error}}</div>
+                                {{/each}}
+                                <div class="font-mono">Synced: {{syncResults.synced}}</div>
+                                <div class="font-mono">Updated: {{syncResults.updated}}</div>
+                                <div class="font-mono">Created: {{syncResults.created}}</div>
+                                <div class="font-mono font-semibold">Total: {{syncResults.total}}</div>
+                            </div>
+                        {{/let}}
+                    {{/if}}
+                </div>
+            {{else}}
+                <div class="h-26 w-full flex flex-col items-center justify-center">
+                    <div class="text-gray-200 dark:text-gray-800 text-base mb-2">No Samsara Credentials</div>
+                    <Button @text="Create New Samsara Credential" @icon="plus" @size="xs" @onClick={{this.createNewCredential}} @isLoading={{this.loadApiCredentials.isRunning}} />
+                </div>
+            {{/each}}
+
+            {{#if this.apiCredentials}}
+                <div class="mt-4">
+                    <Button @type="primary" @text="Save" @icon="save" @onClick={{perform this.saveApiCredentials}} @isLoading={{this.saveApiCredentials.isRunning}} />
+                </div>
+            {{/if}}
+        </div>
     </ContentPanel>
-    <ContentPanel @title="Synced Vehicles" @open={{true}} @pad={{true}} @panelBodyClass="bg-white dark:bg-gray-800">
-        
+    <ContentPanel @title="Samsara Webhook URL" @open={{true}} @pad={{true}} @panelBodyClass="bg-white dark:bg-gray-800">
+        <div class="py-2">
+            <ClickToCopy
+                @value={{this.webhookUrl}}
+                class="mb-2 px-3 py-2 rounded-md bg-gray-200 dark:bg-gray-900 text-center flex items-center text-sm font-mono font-semibold text-blue-500"
+            >
+                {{this.webhookUrl}}
+            </ClickToCopy>
+            <p class="text-sm">Configure this URL in your Samsara dashboard, make sure to setup webhook authentication if needed.</p>
+        </div>
     </ContentPanel>
+    <ContentPanel @title="Synced Vehicles" @open={{true}} @pad={{true}} @panelBodyClass="bg-white dark:bg-gray-800" @panelBodyWrapperClass="p-0i">
+        <div class="flex flex-row px-4 py-2 space-x-4">
+            <Input @value={{this.vehicleSearchQuery}} placeholder="Search vehicles by keyword" class="form-input" disabled={{this.loadSamsaraVehicles.isRunning}} />
+            <Button @text="Search" @icon="magnifying-glass" @onClick={{this.searchVehicles}} @isLoading={{this.loadSamsaraVehicles.isRunning}} />
+        </div>
+        <div class="next-table-wrapper h-auto">
+            <table class="table table-fixed w-full h-auto">
+                <thead>
+                    <tr>
+                        <th class="text-left">Name</th>
+                        <th class="text-left">VIN</th>
+                        <th class="text-left">Serial</th>
+                        <th class="text-left">Vehicle</th>
+                        <th class="text-left">FleetOps ID</th>
+                        <th class="text-left">Sync Date</th>
+                        <th class="text-left" {{set-width "70px"}}></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#each this.vehicles as |samsaraVehicle|}}
+                        <tr>
+                            <td>{{n-a samsaraVehicle.name "-"}}</td>
+                            <td>{{n-a samsaraVehicle.vin "-"}}</td>
+                            <td>{{n-a samsaraVehicle.serial "-"}}</td>
+                            <td>{{n-a (trim (concat samsaraVehicle.year " " samsaraVehicle.make " " samsaraVehicle.model)) "-"}}</td>
+                            <td>
+                                <a
+                                    href="#"
+                                    {{on "click" (fn this.viewFleetOpsVehicle samsaraVehicle.vehicle)}}
+                                    class="text-blue-500 hover:text-blue-400"
+                                >{{samsaraVehicle.vehicle.public_id}}</a>
+                            </td>
+                            <td>{{format-date samsaraVehicle.last_sync_at}}</td>
+                            <td>
+                                <a
+                                    href="#"
+                                    class="text-blue-500 hover:text-blue-400 flex flex-row items-center"
+                                    {{on "click" (perform this.syncVehicle samsaraVehicle)}}
+                                    disabled={{this.syncVehicle.isRunning}}
+                                >
+                                    {{#if (and (eq this.currentVehicleSyncing samsaraVehicle.id) this.syncVehicle.isRunning)}}
+                                        <Spinner @wrapperClass="text-blue-500 mr-2" />
+                                    {{/if}}
+                                    <span>Sync</span>
+                                </a>
+                            </td>
+                        </tr>
+                    {{/each}}
+                </tbody>
+            </table>
+        </div>
+        <Pagination
+            @meta={{this.vehiclesMeta}}
+            @currentPage={{this.vehiclesMeta.current_page}}
+            @onPageChange={{this.changeVehiclesPage}}
+            @isLoading={{this.loadSamsaraVehicles.isRunning}}
+            class="px-4"
+        />
+    </ContentPanel>
+    <Spacer @height="200px" />
 </div>

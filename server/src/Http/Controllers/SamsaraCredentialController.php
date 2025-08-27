@@ -3,37 +3,38 @@
 namespace Fleetbase\Samsara\Http\Controllers;
 
 use Fleetbase\Http\Controllers\Controller;
-use Fleetbase\Samsara\Models\SamsaraCredential;
 use Fleetbase\Http\Requests\FleetbaseRequest;
-use Illuminate\Http\Request;
+use Fleetbase\Http\Resources\FleetbaseResource;
+use Fleetbase\Http\Resources\FleetbaseResourceCollection;
+use Fleetbase\Samsara\Models\SamsaraCredential;
+use Fleetbase\Samsara\Services\SamsaraSyncService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Validator;
 
 /**
- * Class SamsaraCredentialController
- * 
+ * Class SamsaraCredentialController.
+ *
  * Controller for managing Samsara API credentials
- * 
- * @package Fleetbase\Samsara\Http\Controllers
  */
 class SamsaraCredentialController extends Controller
 {
+    protected $syncService;
+
     /**
-     * Constructor
+     * Constructor.
      */
-    public function __construct()
+    public function __construct(SamsaraSyncService $syncService)
     {
-        $this->middleware('auth:fleetbase');
-        $this->middleware(\Fleetbase\Samsara\Http\Middleware\SamsaraCompanyScope::class);
-        $this->authorizeResource(SamsaraCredential::class, 'credential');
+        $this->syncService = $syncService;
+        // $this->authorizeResource(SamsaraCredential::class, 'credential');
+        FleetbaseResource::wrap('samsaraCredential');
     }
 
     /**
-     * Display a listing of Samsara credentials
-     *
-     * @param FleetbaseRequest $request
-     * @return JsonResponse
+     * Display a listing of Samsara credentials.
      */
-    public function index(FleetbaseRequest $request): JsonResponse
+    public function index(FleetbaseRequest $request): FleetbaseResourceCollection|AnonymousResourceCollection
     {
         $credentials = SamsaraCredential::where('company_uuid', session('company'))
             ->when($request->filled('active'), function ($query) use ($request) {
@@ -42,131 +43,118 @@ class SamsaraCredentialController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate();
 
-        return response()->json($credentials);
+        FleetbaseResource::wrap('samsaraCredentials');
+
+        return FleetbaseResource::collection($credentials);
     }
 
     /**
-     * Store a newly created Samsara credential
-     *
-     * @param FleetbaseRequest $request
-     * @return JsonResponse
+     * Store a newly created Samsara credential.
      */
-    public function store(FleetbaseRequest $request): JsonResponse
+    public function store(FleetbaseRequest $request): FleetbaseResource
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'api_token' => 'required|string',
-            'api_base_url' => 'nullable|url',
-            'webhook_url' => 'nullable|url',
+        $validator = Validator::make($request->input('samsaraCredential', []), [
+            'name'           => 'required|string|max:255',
+            'api_token'      => 'required|string',
+            'api_base_url'   => 'nullable|url',
+            'webhook_url'    => 'nullable|url',
             'webhook_secret' => 'nullable|string',
-            'is_sandbox' => 'boolean',
-            'sync_interval' => 'integer|min:1|max:60',
+            'is_sandbox'     => 'boolean',
+            'sync_interval'  => 'integer|min:1|max:60',
         ]);
 
-        $credential = SamsaraCredential::create([
-            'company_uuid' => session('company'),
-            'name' => $request->input('name'),
-            'api_token' => $request->input('api_token'),
-            'api_base_url' => $request->input('api_base_url', 'https://api.samsara.com'),
-            'webhook_url' => $request->input('webhook_url'),
-            'webhook_secret' => $request->input('webhook_secret'),
-            'is_sandbox' => $request->boolean('is_sandbox'),
-            'sync_interval' => $request->input('sync_interval', 5),
-            'is_active' => true,
-        ]);
+        if ($validator->fails()) {
+            return response()->validationError($validator);
+        }
 
-        return response()->json([
-            'credential' => $credential,
-            'message' => 'Samsara credential created successfully',
-        ], 201);
+        $data = $validator->validated();
+
+        // enforce defaults / server-side fallbacks
+        $data['company_uuid']  = session('company');
+        $data['api_base_url']  = $data['api_base_url'] ?? 'https://api.samsara.com';
+        $data['sync_interval'] = $data['sync_interval'] ?? 5;
+        $data['is_active']     = true;
+
+        $credential = SamsaraCredential::create($data);
+
+        return new FleetbaseResource($credential);
     }
 
     /**
-     * Display the specified Samsara credential
-     *
-     * @param string $id
-     * @return JsonResponse
+     * Display the specified Samsara credential.
      */
-    public function show(string $id): JsonResponse
+    public function show(string $id): FleetbaseResource
     {
         $credential = SamsaraCredential::where('company_uuid', session('company'))
-            ->where('public_id', $id)
+            ->where('uuid', $id)
             ->firstOrFail();
 
-        return response()->json($credential);
+        return new FleetbaseResource($credential);
     }
 
     /**
-     * Update the specified Samsara credential
-     *
-     * @param FleetbaseRequest $request
-     * @param string $id
-     * @return JsonResponse
+     * Update the specified Samsara credential.
      */
-    public function update(FleetbaseRequest $request, string $id): JsonResponse
+    public function update(FleetbaseRequest $request, string $id): FleetbaseResource
     {
         $credential = SamsaraCredential::where('company_uuid', session('company'))
-            ->where('public_id', $id)
-            ->firstOrFail();
+            ->where('uuid', $id)
+            ->first();
 
-        $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'api_token' => 'sometimes|required|string',
-            'api_base_url' => 'nullable|url',
-            'webhook_url' => 'nullable|url',
+        if (!$credential) {
+            return response()->error('Samsara credential not found.');
+        }
+
+        $validator = Validator::make($request->input('samsaraCredential', []), [
+            'name'           => 'sometimes|required|string|max:255',
+            'api_token'      => 'sometimes|required|string',
+            'api_base_url'   => 'nullable|url',
+            'webhook_url'    => 'nullable|url',
             'webhook_secret' => 'nullable|string',
-            'is_active' => 'boolean',
-            'is_sandbox' => 'boolean',
-            'sync_interval' => 'integer|min:1|max:60',
+            'is_active'      => 'boolean',
+            'is_sandbox'     => 'boolean',
+            'sync_interval'  => 'integer|min:1|max:60',
         ]);
 
-        $credential->update($request->only([
-            'name',
-            'api_token',
-            'api_base_url',
-            'webhook_url',
-            'webhook_secret',
-            'is_active',
-            'is_sandbox',
-            'sync_interval',
-        ]));
+        if ($validator->fails()) {
+            return response()->validationError($validator);
+        }
 
-        return response()->json([
-            'credential' => $credential,
-            'message' => 'Samsara credential updated successfully',
-        ]);
+        $credential->update($validator->validated());
+
+        return new FleetbaseResource($credential);
     }
 
     /**
-     * Remove the specified Samsara credential
-     *
-     * @param string $id
-     * @return JsonResponse
+     * Remove the specified Samsara credential.
      */
-    public function destroy(string $id): JsonResponse
+    public function destroy(string $id): FleetbaseResource
     {
         $credential = SamsaraCredential::where('company_uuid', session('company'))
-            ->where('public_id', $id)
-            ->firstOrFail();
+            ->where('uuid', $id)
+            ->first();
+
+        if (!$credential) {
+            return response()->error('Samsara credential not found.');
+        }
 
         $credential->delete();
 
-        return response()->json([
-            'message' => 'Samsara credential deleted successfully',
-        ]);
+        return new FleetbaseResource($credential);
     }
 
     /**
-     * Test the API connection for the specified credential
-     *
-     * @param string $id
-     * @return JsonResponse
+     * Test the API connection for the specified credential.
      */
     public function testConnection(string $id): JsonResponse
     {
         $credential = SamsaraCredential::where('company_uuid', session('company'))
-            ->where('public_id', $id)
-            ->firstOrFail();
+            ->where('uuid', $id)
+            ->first();
+
+        if (!$credential) {
+            return response()->error('Samsara credential not found.');
+        }
 
         $result = $credential->testConnection();
 
@@ -174,22 +162,37 @@ class SamsaraCredentialController extends Controller
     }
 
     /**
-     * Test API connection with provided credentials (without saving)
-     *
-     * @param FleetbaseRequest $request
-     * @return JsonResponse
+     * Run a sync using the specified credential.
+     */
+    public function sync(string $id): JsonResponse
+    {
+        $credential = SamsaraCredential::where('company_uuid', session('company'))
+            ->where('uuid', $id)
+            ->first();
+
+        if (!$credential) {
+            return response()->error('Samsara credential not found.');
+        }
+
+        $result = $this->syncService->syncVehicles($credential, true);
+
+        return response()->json($result);
+    }
+
+    /**
+     * Test API connection with provided credentials (without saving).
      */
     public function testCredentials(FleetbaseRequest $request): JsonResponse
     {
         $request->validate([
-            'api_token' => 'required|string',
+            'api_token'    => 'required|string',
             'api_base_url' => 'nullable|url',
         ]);
 
         $tempCredential = new SamsaraCredential([
-            'api_token' => $request->input('api_token'),
+            'api_token'    => $request->input('api_token'),
             'api_base_url' => $request->input('api_base_url', 'https://api.samsara.com'),
-            'is_active' => true,
+            'is_active'    => true,
         ]);
 
         $result = $tempCredential->testConnection();
@@ -198,36 +201,33 @@ class SamsaraCredentialController extends Controller
     }
 
     /**
-     * Get the active credential for the current company
-     *
-     * @return JsonResponse
+     * Get the active credential for the current company.
      */
-    public function getActive(): JsonResponse
+    public function getActive(): FleetbaseResource
     {
         $credential = SamsaraCredential::where('company_uuid', session('company'))
             ->where('is_active', true)
             ->first();
 
         if (!$credential) {
-            return response()->json([
-                'message' => 'No active Samsara credential found',
-            ], 404);
+            return response()->error('Samsara credential not found.');
         }
 
-        return response()->json($credential);
+        return new FleetbaseResource($credential);
     }
 
     /**
-     * Activate a specific credential (deactivates others)
-     *
-     * @param string $id
-     * @return JsonResponse
+     * Activate a specific credential (deactivates others).
      */
-    public function activate(string $id): JsonResponse
+    public function activate(string $id): FleetbaseResource
     {
         $credential = SamsaraCredential::where('company_uuid', session('company'))
-            ->where('public_id', $id)
-            ->firstOrFail();
+            ->where('uuid', $id)
+            ->first();
+
+        if (!$credential) {
+            return response()->error('Samsara credential not found.');
+        }
 
         // Deactivate all other credentials for this company
         SamsaraCredential::where('company_uuid', session('company'))
@@ -237,36 +237,33 @@ class SamsaraCredentialController extends Controller
         // Activate the selected credential
         $credential->update(['is_active' => true]);
 
-        return response()->json([
-            'credential' => $credential,
-            'message' => 'Samsara credential activated successfully',
-        ]);
+        return new FleetbaseResource($credential);
     }
 
     /**
-     * Get sync statistics for the credential
-     *
-     * @param string $id
-     * @return JsonResponse
+     * Get sync statistics for the credential.
      */
     public function getSyncStats(string $id): JsonResponse
     {
         $credential = SamsaraCredential::where('company_uuid', session('company'))
-            ->where('public_id', $id)
-            ->firstOrFail();
+            ->where('uuid', $id)
+            ->first();
+
+        if (!$credential) {
+            return response()->error('Samsara credential not found.');
+        }
 
         // Get related statistics
         $stats = [
-            'last_sync_at' => $credential->last_sync_at,
-            'sync_interval' => $credential->sync_interval,
-            'is_active' => $credential->is_active,
-            'vehicles_count' => $credential->samsaraVehicles()->count(),
+            'last_sync_at'          => $credential->last_sync_at,
+            'sync_interval'         => $credential->sync_interval,
+            'is_active'             => $credential->is_active,
+            'vehicles_count'        => $credential->samsaraVehicles()->count(),
             'active_vehicles_count' => $credential->samsaraVehicles()->activeSynced()->count(),
-            'pending_events_count' => $credential->webhookEvents()->pending()->count(),
-            'failed_events_count' => $credential->webhookEvents()->failed()->count(),
+            'pending_events_count'  => $credential->webhookEvents()->pending()->count(),
+            'failed_events_count'   => $credential->webhookEvents()->failed()->count(),
         ];
 
         return response()->json($stats);
     }
 }
-

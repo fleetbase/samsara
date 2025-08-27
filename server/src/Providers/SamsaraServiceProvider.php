@@ -2,6 +2,7 @@
 
 namespace Fleetbase\Samsara\Providers;
 
+use Fleetbase\FleetOps\Providers\FleetOpsServiceProvider;
 use Fleetbase\Providers\CoreServiceProvider;
 use Fleetbase\Samsara\Models\SamsaraCredential;
 use Fleetbase\Samsara\Models\SamsaraVehicle;
@@ -10,14 +11,16 @@ use Fleetbase\Samsara\Policies\SamsaraCredentialPolicy;
 use Fleetbase\Samsara\Policies\SamsaraVehiclePolicy;
 use Fleetbase\Samsara\Policies\SamsaraWebhookEventPolicy;
 use Fleetbase\Samsara\Services\SamsaraApiService;
-use Fleetbase\Samsara\Services\SamsaraWebhookService;
 use Fleetbase\Samsara\Services\SamsaraSyncService;
-use Fleetbase\Samsara\Console\Commands\SamsaraSyncCommand;
-use Fleetbase\Samsara\Auth\Schemas\Samsara as SamsaraAuthSchema;
+use Fleetbase\Samsara\Services\SamsaraWebhookService;
 use Illuminate\Support\Facades\Gate;
 
 if (!class_exists(CoreServiceProvider::class)) {
     throw new \Exception('Extension cannot be loaded without `fleetbase/core-api` installed!');
+}
+
+if (!class_exists(FleetOpsServiceProvider::class)) {
+    throw new \Exception('Storefront cannot be loaded without `fleetbase/fleetops-api` installed!');
 }
 
 /**
@@ -38,9 +41,18 @@ class SamsaraServiceProvider extends CoreServiceProvider
      * @var array
      */
     protected $policies = [
-        SamsaraCredential::class => SamsaraCredentialPolicy::class,
-        SamsaraVehicle::class => SamsaraVehiclePolicy::class,
+        SamsaraCredential::class   => SamsaraCredentialPolicy::class,
+        SamsaraVehicle::class      => SamsaraVehiclePolicy::class,
         SamsaraWebhookEvent::class => SamsaraWebhookEventPolicy::class,
+    ];
+
+    /**
+     * The console commands registered with the service provider.
+     *
+     * @var array
+     */
+    public $commands = [
+        \Fleetbase\Samsara\Console\Commands\SamsaraSyncCommand::class,
     ];
 
     /**
@@ -59,8 +71,59 @@ class SamsaraServiceProvider extends CoreServiceProvider
     public function register()
     {
         $this->app->register(CoreServiceProvider::class);
+        $this->app->register(FleetOpsServiceProvider::class);
+        $this->registerServices();
+    }
 
-        // Register Samsara services as singletons
+    /**
+     * Bootstrap any package services.
+     *
+     * @return void
+     *
+     * @throws \Exception if the `fleetbase/core-api` package is not installed
+     */
+    public function boot()
+    {
+        $this->registerCommands();
+        $this->scheduleCommands(function ($schedule) {
+            $schedule->command('samsara:sync --force')->twiceDaily(1, 13);
+        });
+        $this->registerObservers();
+        $this->registerPolicies();
+        $this->registerExpansionsFrom(__DIR__ . '/../Expansions');
+        $this->loadRoutesFrom(__DIR__ . '/../routes.php');
+        $this->loadMigrationsFrom(__DIR__ . '/../../migrations');
+        $this->mergeConfigFrom(__DIR__ . '/../../config/samsara.php', 'samsara');
+    }
+
+    /**
+     * Register the application's policies.
+     *
+     * @return void
+     */
+    public function registerPolicies()
+    {
+        foreach ($this->policies as $model => $policy) {
+            Gate::policy($model, $policy);
+        }
+
+        // Register additional gates
+        Gate::define('samsara.access', function ($user) {
+            return $user->hasPermissionTo('samsara view');
+        });
+
+        Gate::define('samsara.admin', function ($user) {
+            return $user->hasPermissionTo('samsara admin');
+        });
+    }
+
+    /**
+     * Register samsara services to application container as singletons.
+     *
+     * @return void
+     */
+    public function registerServices()
+    {
         $this->app->singleton(SamsaraApiService::class, function ($app) {
             return new SamsaraApiService();
         });
@@ -75,76 +138,5 @@ class SamsaraServiceProvider extends CoreServiceProvider
                 $app->make(SamsaraWebhookService::class)
             );
         });
-
-        // Register middleware
-        $this->app['router']->aliasMiddleware(
-            'samsara.company.scope',
-            \Fleetbase\Samsara\Http\Middleware\SamsaraCompanyScope::class
-        );
-
-        // Register console commands
-        if ($this->app->runningInConsole()) {
-            $this->commands([
-                SamsaraSyncCommand::class,
-            ]);
-        }
-    }
-
-    /**
-     * Bootstrap any package services.
-     *
-     * @return void
-     *
-     * @throws \Exception if the `fleetbase/core-api` package is not installed
-     */
-    public function boot()
-    {
-        $this->registerObservers();
-        $this->registerExpansionsFrom(__DIR__ . '/../Expansions');
-        $this->loadRoutesFrom(__DIR__ . '/../routes.php');
-        $this->loadMigrationsFrom(__DIR__ . '/../../migrations');
-
-        // Register policies
-        // $this->registerPolicies();
-
-        // // Register auth schema
-        // $this->registerAuthSchema();
-
-        // Register additional gates
-        Gate::define('samsara.access', function ($user) {
-            return $user->hasPermissionTo('samsara view');
-        });
-
-        Gate::define('samsara.admin', function ($user) {
-            return $user->hasPermissionTo('samsara admin');
-        });
-    }
-
-    /**
-     * Register the application's policies.
-     *
-     * @return void
-     */
-    public function registerPolicies()
-    {
-        foreach ($this->policies as $model => $policy) {
-            Gate::policy($model, $policy);
-        }
-    }
-
-    /**
-     * Register the Samsara auth schema.
-     *
-     * @return void
-     */
-    protected function registerAuthSchema()
-    {
-        // Register the auth schema when the application is booted
-        $this->app->booted(function () {
-            if (class_exists(\Fleetbase\Models\Permission::class)) {
-                \Fleetbase\Models\Permission::registerSchema(SamsaraAuthSchema::class);
-            }
-        });
     }
 }
-

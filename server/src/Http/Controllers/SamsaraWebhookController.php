@@ -3,19 +3,17 @@
 namespace Fleetbase\Samsara\Http\Controllers;
 
 use Fleetbase\Http\Controllers\Controller;
-use Fleetbase\Samsara\Models\SamsaraWebhookEvent;
 use Fleetbase\Samsara\Models\SamsaraCredential;
+use Fleetbase\Samsara\Models\SamsaraWebhookEvent;
 use Fleetbase\Samsara\Services\SamsaraWebhookService;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Class SamsaraWebhookController
- * 
+ * Class SamsaraWebhookController.
+ *
  * Controller for handling Samsara webhook events
- * 
- * @package Fleetbase\Samsara\Http\Controllers
  */
 class SamsaraWebhookController extends Controller
 {
@@ -27,11 +25,7 @@ class SamsaraWebhookController extends Controller
     }
 
     /**
-     * Handle incoming webhook from Samsara
-     *
-     * @param Request $request
-     * @param string $companyId
-     * @return JsonResponse
+     * Handle incoming webhook from Samsara.
      */
     public function handle(Request $request, string $companyId): JsonResponse
     {
@@ -39,8 +33,8 @@ class SamsaraWebhookController extends Controller
             // Log the incoming webhook for debugging
             Log::info('Samsara webhook received', [
                 'company_id' => $companyId,
-                'headers' => $request->headers->all(),
-                'payload' => $request->all(),
+                'headers'    => $request->headers->all(),
+                'payload'    => $request->all(),
             ]);
 
             // Find the credential for this company
@@ -52,7 +46,7 @@ class SamsaraWebhookController extends Controller
                 Log::warning('No active Samsara credential found for webhook', [
                     'company_id' => $companyId,
                 ]);
-                
+
                 return response()->json([
                     'message' => 'No active credential found',
                 ], 404);
@@ -67,10 +61,10 @@ class SamsaraWebhookController extends Controller
 
                 if (!$isValid) {
                     Log::warning('Invalid webhook signature', [
-                        'company_id' => $companyId,
+                        'company_id'    => $companyId,
                         'credential_id' => $credential->public_id,
                     ]);
-                    
+
                     return response()->json([
                         'message' => 'Invalid signature',
                     ], 401);
@@ -86,20 +80,20 @@ class SamsaraWebhookController extends Controller
 
             if ($result['success']) {
                 return response()->json([
-                    'message' => 'Webhook processed successfully',
+                    'message'  => 'Webhook processed successfully',
                     'event_id' => $result['event_id'] ?? null,
                 ], 200);
             } else {
                 return response()->json([
                     'message' => 'Webhook processing failed',
-                    'error' => $result['error'] ?? 'Unknown error',
+                    'error'   => $result['error'] ?? 'Unknown error',
                 ], 500);
             }
         } catch (\Exception $e) {
             Log::error('Webhook processing error', [
                 'company_id' => $companyId,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
+                'error'      => $e->getMessage(),
+                'trace'      => $e->getTraceAsString(),
             ]);
 
             return response()->json([
@@ -109,10 +103,7 @@ class SamsaraWebhookController extends Controller
     }
 
     /**
-     * Get webhook events for the current company
-     *
-     * @param Request $request
-     * @return JsonResponse
+     * Get webhook events for the current company.
      */
     public function getEvents(Request $request): JsonResponse
     {
@@ -136,10 +127,7 @@ class SamsaraWebhookController extends Controller
     }
 
     /**
-     * Get a specific webhook event
-     *
-     * @param string $id
-     * @return JsonResponse
+     * Get a specific webhook event.
      */
     public function getEvent(string $id): JsonResponse
     {
@@ -152,10 +140,7 @@ class SamsaraWebhookController extends Controller
     }
 
     /**
-     * Retry processing a failed webhook event
-     *
-     * @param string $id
-     * @return JsonResponse
+     * Retry processing a failed webhook event.
      */
     public function retryEvent(string $id): JsonResponse
     {
@@ -175,12 +160,12 @@ class SamsaraWebhookController extends Controller
             if ($result['success']) {
                 return response()->json([
                     'message' => 'Event processed successfully',
-                    'event' => $event->fresh(),
+                    'event'   => $event->fresh(),
                 ]);
             } else {
                 return response()->json([
                     'message' => 'Event processing failed',
-                    'error' => $result['error'] ?? 'Unknown error',
+                    'error'   => $result['error'] ?? 'Unknown error',
                 ], 500);
             }
         } catch (\Exception $e) {
@@ -191,10 +176,7 @@ class SamsaraWebhookController extends Controller
     }
 
     /**
-     * Get webhook statistics
-     *
-     * @param Request $request
-     * @return JsonResponse
+     * Get webhook statistics.
      */
     public function getStats(Request $request): JsonResponse
     {
@@ -205,28 +187,28 @@ class SamsaraWebhookController extends Controller
             'total_events' => SamsaraWebhookEvent::where('company_uuid', session('company'))
                 ->where('created_at', '>=', $since)
                 ->count(),
-            
+
             'processed_events' => SamsaraWebhookEvent::where('company_uuid', session('company'))
                 ->where('created_at', '>=', $since)
                 ->where('processing_status', 'processed')
                 ->count(),
-            
+
             'failed_events' => SamsaraWebhookEvent::where('company_uuid', session('company'))
                 ->where('created_at', '>=', $since)
                 ->where('processing_status', 'failed')
                 ->count(),
-            
+
             'pending_events' => SamsaraWebhookEvent::where('company_uuid', session('company'))
                 ->where('created_at', '>=', $since)
                 ->where('processing_status', 'pending')
                 ->count(),
-            
+
             'events_by_type' => SamsaraWebhookEvent::where('company_uuid', session('company'))
                 ->where('created_at', '>=', $since)
                 ->selectRaw('event_type, count(*) as count')
                 ->groupBy('event_type')
                 ->pluck('count', 'event_type'),
-            
+
             'recent_events' => SamsaraWebhookEvent::where('company_uuid', session('company'))
                 ->where('created_at', '>=', $since)
                 ->orderBy('created_at', 'desc')
@@ -238,38 +220,35 @@ class SamsaraWebhookController extends Controller
     }
 
     /**
-     * Test webhook endpoint (for testing purposes)
-     *
-     * @param Request $request
-     * @return JsonResponse
+     * Test webhook endpoint (for testing purposes).
      */
     public function test(Request $request): JsonResponse
     {
         // This endpoint can be used to test webhook processing
         // with sample data during development
-        
+
         $samplePayload = [
-            'eventId' => 'test-' . uniqid(),
-            'eventMs' => now()->timestamp * 1000,
+            'eventId'   => 'test-' . uniqid(),
+            'eventMs'   => now()->timestamp * 1000,
             'eventType' => 'Alert',
-            'event' => [
+            'event'     => [
                 'alertConditionDescription' => 'Test alert',
-                'alertConditionId' => 'TestAlert',
-                'details' => 'This is a test webhook event',
-                'device' => [
-                    'id' => 'test-vehicle-123',
-                    'name' => 'Test Vehicle',
+                'alertConditionId'          => 'TestAlert',
+                'details'                   => 'This is a test webhook event',
+                'device'                    => [
+                    'id'     => 'test-vehicle-123',
+                    'name'   => 'Test Vehicle',
                     'serial' => 'TEST123',
-                    'vin' => 'TEST123456789',
+                    'vin'    => 'TEST123456789',
                 ],
-                'orgId' => 12345,
+                'orgId'    => 12345,
                 'resolved' => false,
-                'startMs' => now()->timestamp * 1000,
-                'summary' => 'Test webhook event',
+                'startMs'  => now()->timestamp * 1000,
+                'summary'  => 'Test webhook event',
             ],
         ];
 
-        $payload = $request->input('payload', $samplePayload);
+        $payload   = $request->input('payload', $samplePayload);
         $companyId = $request->input('company_id', session('company'));
 
         return $this->handle(
@@ -279,21 +258,18 @@ class SamsaraWebhookController extends Controller
     }
 
     /**
-     * Get webhook URL for the current company
-     *
-     * @param Request $request
-     * @return JsonResponse
+     * Get webhook URL for the current company.
      */
     public function getWebhookUrl(Request $request): JsonResponse
     {
         $companyId = session('company');
-        $baseUrl = $request->getSchemeAndHttpHost();
-        
+        $baseUrl   = $request->getSchemeAndHttpHost();
+
         $webhookUrl = $baseUrl . '/samsara/webhook/' . $companyId;
 
         return response()->json([
-            'webhook_url' => $webhookUrl,
-            'company_id' => $companyId,
+            'webhook_url'  => $webhookUrl,
+            'company_id'   => $companyId,
             'instructions' => [
                 'Configure this URL in your Samsara dashboard',
                 'Make sure to set up webhook authentication if needed',
@@ -302,4 +278,3 @@ class SamsaraWebhookController extends Controller
         ]);
     }
 }
-
