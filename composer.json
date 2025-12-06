@@ -1,6 +1,6 @@
 {
     "name": "fleetbase/samsara-api",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "description": "Vehicle Data Import & Location Integration via Samsara API",
     "keywords": [
         "fleetbase",
