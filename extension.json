@@ -1,6 +1,6 @@
 {
     "name": "fleetbase/samsara",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "description": "Vehicle Data Import & Location Integration via Samsara API",
     "repository": "https://github.com/fleetbase/samsara",
     "license": "AGPL-3.0-or-later",
