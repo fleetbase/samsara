@@ -431,7 +431,7 @@ class SamsaraSyncService
             }
 
             $result['end_time'] = now();
-            $result['duration'] = $result['end_time']->diffInSeconds($result['start_time']);
+            $result['duration'] = (int) $result['end_time']->diffInSeconds($result['start_time'], true);
 
             Log::info('Full Samsara sync completed', $result);
         } catch (\Exception $e) {
